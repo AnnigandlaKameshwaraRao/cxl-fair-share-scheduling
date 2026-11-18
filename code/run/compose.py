@@ -5,7 +5,7 @@ Host i always uses pool slot i (its address range is baked into its checkpoint),
 so `compose.py mix_sp stream pchase` gives host0 = STREAM on slot 0 and
 host1 = pchase on slot 1.
 
-Creates (paths relative to ~/BTP/cxl-clustersim):
+Creates (paths relative to ~/cxl-clustersim):
   disaggregated_memory/exp_<name>.json   joblist, one entry per host
   ckpt_lib/<name>/btp_<i>/checkpoint/    copied from ckpt_lib/wl-<workload>/btp_<i>/
 Then upload ckpt_lib/<name> to the cluster's ~/btp_checkpoints/<name> and add a
@@ -16,7 +16,7 @@ import os
 import shutil
 import sys
 
-ROOT = os.path.expanduser("~/BTP/cxl-clustersim")
+ROOT = os.path.expanduser("~/cxl-clustersim")
 args = sys.argv[1:]
 channels = None
 if args and args[0].startswith("--channels="):

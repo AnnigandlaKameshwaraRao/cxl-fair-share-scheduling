@@ -19,7 +19,7 @@ def host(path):
         o['reqs'] += n; o['latsum'] += lm * n
     return o
 out = {}
-D = os.path.expanduser('~/BTP/cxl-clustersim')
+D = os.path.expanduser('~/cxl-clustersim')
 mixdir = {m: f'{D}/p1m_{m:02d}_desk' for m in range(1, 19)}
 for m in (1, 4, 13): mixdir[m] = f'{D}/p1m_{m:02d}_clus'
 for m, d in mixdir.items():
@@ -27,6 +27,6 @@ for m, d in mixdir.items():
     out[f'mix{m}'] = dict(dir=d, comment=cfg['0']['metadata'].get('comment', ''), hosts=[host(f'{d}/btp_{h}/stats.txt') for h in range(4)])
 for d in sorted(glob.glob(f'{D}/p1w_alone_*_a1') + glob.glob(f'{D}/p1s_*_a1')):
     out[os.path.basename(d)[:-3]] = dict(dir=d, hosts=[host(f'{d}/btp_0/stats.txt')])
-d = os.path.expanduser('~/BTP/cxl-clustersim/p1s_v3sc_s2_a2'); out['p1s_v3sc_s2_rerun'] = dict(dir=d, hosts=[host(f'{d}/btp_0/stats.txt')])
+d = os.path.expanduser('~/cxl-clustersim/p1s_v3sc_s2_a2'); out['p1s_v3sc_s2_rerun'] = dict(dir=d, hosts=[host(f'{d}/btp_0/stats.txt')])
 json.dump(out, open('p1raw.json', 'w'))
 print(len(out), 'runs')

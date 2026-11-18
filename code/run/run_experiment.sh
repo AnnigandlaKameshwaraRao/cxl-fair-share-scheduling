@@ -12,7 +12,7 @@
 # This is the same command every run of the study used: unified_run.py with --checkpoints False
 # restores the checkpoint found in each host's directory.
 set -u
-SIM=${SIM:-$HOME/BTP/cxl-clustersim}
+SIM=${SIM:-$HOME/cxl-clustersim}
 SST=${SST:-$HOME/sst-core/bin/sst}
 JOB=$(readlink -f "$1"); shift
 NAME=$(basename "$JOB" .json); NAME=${NAME#exp_}; E=${NAME}_a1

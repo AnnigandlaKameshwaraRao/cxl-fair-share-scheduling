@@ -2,7 +2,7 @@
 import glob, os, re, json
 HOME = os.path.expanduser('~')
 # folders holding the raw run directories (<name>_a1/btp_<i>/stats.txt); set RUNS to override
-ROOTS = os.environ.get('RUNS', f'{HOME}/BTP/cxl-clustersim').split(':')
+ROOTS = os.environ.get('RUNS', f'{HOME}/cxl-clustersim').split(':')
 BR = 'board.remote_memory.outgoing_request_bridge.'
 
 def find(name):

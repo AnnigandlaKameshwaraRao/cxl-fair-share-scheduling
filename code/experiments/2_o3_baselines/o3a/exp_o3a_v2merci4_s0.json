@@ -46,8 +46,8 @@
         "HOME=/home/gem5/btp-workloads/merci numactl --membind=1 -- /home/gem5/btp-workloads/merci_baseline.m5 -d dblp -c 4 -r 2;",
         "numastat;"
       ],
-      "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v2",
-      "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+      "disk": "~/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v2",
+      "kernel": "~/linux-kernel-build/linux/vmlinux",
       "bootloader": ""
     }
   }

@@ -64,7 +64,7 @@ cd ../o3_baselines && python3 make_figures.py   # figures of docs 10 and 11
 On an x86-64 Linux machine (Ubuntu 24.04 was used) with KVM, Python 3, SCons, Open MPI and gem5's build dependencies (`code/run/cxl-clustersim-runtime.def` lists the packages):
 
 1. Install [SST-Core 14.0.0](https://github.com/sstsimulator/sst-core) and [SST-Elements 14.0.0](https://github.com/sstsimulator/sst-elements) (for example to `~/sst-core`).
-2. Clone [CXL-ClusterSim](https://github.com/darchr/cxl-clustersim) to `~/BTP/cxl-clustersim`, check out commit `43a51d2195fdce294851f0034c51f8053758d621`, apply `code/simulator_patches/all_changes.patch`, and build `build/ALL/gem5.opt` and `build/ALL/libgem5_opt.so` (commands in `code/README.md`).
+2. Clone [CXL-ClusterSim](https://github.com/darchr/cxl-clustersim) to `~/cxl-clustersim`, check out commit `43a51d2195fdce294851f0034c51f8053758d621`, apply `code/simulator_patches/all_changes.patch`, and build `build/ALL/gem5.opt` and `build/ALL/libgem5_opt.so` (commands in `code/README.md`).
 3. In `ext/sst`, link the SST binary and the SST-Elements libraries, as doc 03 describes ("Build and setup problems").
 4. Build the scheduler element in `code/btpmem` and copy `libbtpmem.so` to `ext/sst`.
 
@@ -74,12 +74,12 @@ On an x86-64 Linux machine (Ubuntu 24.04 was used) with KVM, Python 3, SCons, Op
 2. Build Linux 6.9.9 with its `config.x86.6.9.9` configuration.
 3. Build its Ubuntu 24.04 x86 disk image, apply the fixes in doc 03, and add the workloads as `code/workloads/README.md` describes. The six SPEC CPU 2026 workloads need your own SPEC licence; the other six are open source.
 
-The joblists expect the kernel at `~/BTP/linux-kernel-build/linux/vmlinux` and the images under `~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/`; edit the `kernel` and `disk` fields if yours are elsewhere.
+The joblists expect the kernel at `~/linux-kernel-build/linux/vmlinux` and the images under `~/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/`; edit the `kernel` and `disk` fields if yours are elsewhere.
 
 ### 4. Take checkpoints and run
 
 ```bash
-export SIM=~/BTP/cxl-clustersim
+export SIM=~/cxl-clustersim
 # one checkpoint per workload and host slot (12 workloads x 4 slots), booted under KVM
 for s in 0 1 2 3; do code/run/make_ckpt.sh code/workloads/joblists/wl_v4tea_4slot.json $s wl-v4tea 40; done
 # an alone run: tealeaf from slot 2, one channel, FR-FCFS, O3 cores

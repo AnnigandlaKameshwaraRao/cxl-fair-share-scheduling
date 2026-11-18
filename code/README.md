@@ -11,8 +11,8 @@
 ## simulator_patches
 
 ```bash
-git clone https://github.com/darchr/cxl-clustersim.git ~/BTP/cxl-clustersim
-cd ~/BTP/cxl-clustersim
+git clone https://github.com/darchr/cxl-clustersim.git ~/cxl-clustersim
+cd ~/cxl-clustersim
 git checkout 43a51d2195fdce294851f0034c51f8053758d621
 git apply /path/to/code/simulator_patches/all_changes.patch
 ```
@@ -31,7 +31,7 @@ Needs SST-Core 14.0.0 installed (default prefix `~/sst-core`) and the SST-Elemen
 ```bash
 cd code/btpmem
 make SST_PREFIX=$HOME/sst-core ELEM_SRC=/path/to/sst-elements-library-14.0.0/src
-cp libbtpmem.so ~/BTP/cxl-clustersim/ext/sst/
+cp libbtpmem.so ~/cxl-clustersim/ext/sst/
 ```
 
 `unified_sst.py` loads `btpmem` from `ext/sst` whenever a joblist asks for anything other than the stock pool (`pool-sched` other than `fcfs`, or a `pool-arb`).
@@ -54,7 +54,7 @@ cp libbtpmem.so ~/BTP/cxl-clustersim/ext/sst/
 | `compose.py` | Builds a multi-host joblist and its checkpoint folder from the per-workload library (used for the early experiments). |
 | `cxl-clustersim-runtime.def` | Apptainer definition with the runtime libraries; gem5 and SST are bound in from the host. |
 
-Both shell scripts read the simulator path from `SIM` (default `~/BTP/cxl-clustersim`) and the SST binary from `SST` (default `~/sst-core/bin/sst`).
+Both shell scripts read the simulator path from `SIM` (default `~/cxl-clustersim`) and the SST binary from `SST` (default `~/sst-core/bin/sst`).
 
 ## experiments
 

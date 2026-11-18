@@ -5,7 +5,7 @@
 # Output: ckpt_lib/<tag>/<experiment>_<host>/checkpoint/  (layout RESTORE_FROM expects)
 set -u
 JOBLIST=$1; HOST=$2; TAG=$3; TMO=${4:-60}
-cd "${SIM:-$HOME/BTP/cxl-clustersim}" || exit 1
+cd "${SIM:-$HOME/cxl-clustersim}" || exit 1
 ARGS=$(python3 - "$JOBLIST" "$HOST" <<'PY'
 import json, sys, shlex
 j = json.load(open(sys.argv[1]))[sys.argv[2]]

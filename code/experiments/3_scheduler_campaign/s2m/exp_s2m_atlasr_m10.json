@@ -57,8 +57,8 @@
                 "wait;",
                 "numastat;"
             ],
-            "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v4",
-            "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+            "disk": "~/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v4",
+            "kernel": "~/linux-kernel-build/linux/vmlinux",
             "bootloader": ""
         }
     },
@@ -113,8 +113,8 @@
                 "numactl --membind=1 -- /home/gem5/btp-workloads/llama-bench.m5 -m /home/gem5/btp-workloads/models/SmolLM2-135M-Q8_0.gguf -lm none -p 0 -n 2 -t 4 -r 5;",
                 "numastat;"
             ],
-            "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v2",
-            "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+            "disk": "~/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v2",
+            "kernel": "~/linux-kernel-build/linux/vmlinux",
             "bootloader": ""
         }
     },
@@ -169,8 +169,8 @@
                 "cd /home/gem5/btp-workloads/hnsw/run && OMP_NUM_THREADS=1 numactl --membind=1 -- ../../hnsw_sift1b.m5;",
                 "numastat;"
             ],
-            "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v2",
-            "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+            "disk": "~/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v2",
+            "kernel": "~/linux-kernel-build/linux/vmlinux",
             "bootloader": ""
         }
     },
@@ -225,8 +225,8 @@
                 "numactl --membind=1 -- /home/gem5/btp-workloads/multichase.m5 -m 256m -n 15;",
                 "numastat;"
             ],
-            "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v2",
-            "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+            "disk": "~/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v2",
+            "kernel": "~/linux-kernel-build/linux/vmlinux",
             "bootloader": ""
         }
     }

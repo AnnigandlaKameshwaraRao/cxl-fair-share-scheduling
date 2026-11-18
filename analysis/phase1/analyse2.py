@@ -4,7 +4,7 @@ Progress per host: instructions/s, except merci and multichase where pool reques
 (their instruction counts include spin/idle loops that grow when they stall).
 Slowdown = alone progress rate / mix progress rate."""
 import re, os, json, statistics as st
-R = os.path.expanduser('~/BTP/cxl-clustersim'); D = os.path.dirname(os.path.abspath(__file__))
+R = os.path.expanduser('~/cxl-clustersim'); D = os.path.dirname(os.path.abspath(__file__))
 SLOT0 = {'v4tea': 'p1w_alone_v4tea_a1', 'v2stream24m': 'p1w_alone_stream24m_a1', 'v5foton': 'p1w_alone_v5foton_a1',
          'v3sc': 'p1w_alone_sc_a1', 'v5roms': 'p1w_alone_v5roms_a1', 'v2llamar5': 'p1w_alone_llamar5_a1',
          'v2merci4': 'p1w_alone_merci4_a1', 'v5g500': 'p1w_alone_v5g500_a1', 'v2hnsw': 'p1w_alone_v2hnsw_a1',

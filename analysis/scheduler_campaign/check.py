@@ -12,7 +12,7 @@ def wl_of(cfg_host):
 def cfg_of(name, d):
     f = f'{d}/job_config.json'
     if os.path.exists(f): return json.load(open(f))
-    return json.load(open(f'{HOME}/BTP/cxl-clustersim/disaggregated_memory/exp_{name[:-3]}.json'))
+    return json.load(open(f'{HOME}/cxl-clustersim/disaggregated_memory/exp_{name[:-3]}.json'))
 SCHED = {'FCFS': 'o3b_fcfs', 'FR-FCFS': 'o3b_frfcfs', 'ATLAS 10M': 's1m_atlas', 'ATLAS 10M + rule': 's1m_atlasr', 'ATLAS 1M': 's1m_atlas1m',
          'ATLAS 1M + rule': 's1m_atlas1mr', 'TCM': 's1m_tcm', 'BLISS': 's1m_bliss', 'PAR-BS': 's1m_parbs', 'SAA': 's1m_saa', 'SAA, smoothing': 's1m_saasm'}
 problems = []
