@@ -1,0 +1,75 @@
+diff --git a/disaggregated_memory/cachehierarchies/dm_caches.py b/disaggregated_memory/cachehierarchies/dm_caches.py
+index 2e47c0f4bd..4cfb6b647d 100644
+--- a/disaggregated_memory/cachehierarchies/dm_caches.py
++++ b/disaggregated_memory/cachehierarchies/dm_caches.py
+@@ -31,6 +31,7 @@ from cachehierarchies.private_l1_private_l2_shared_l3_cache_hierarchy import (
+ from m5.objects import L2XBar
+ 
+ from gem5.components.boards.abstract_board import AbstractBoard
++from m5.params import NULL
+ from gem5.components.cachehierarchies.classic.caches.l1dcache import L1DCache
+ from gem5.components.cachehierarchies.classic.caches.l1icache import L1ICache
+ from gem5.components.cachehierarchies.classic.caches.l2cache import L2Cache
+@@ -52,6 +53,12 @@ class ClassicPrivateL1PrivateL2SharedL3DMCache(
+         l2_size: str,
+         l3_size: str,
+         l3_assoc: int = 16,
++        l1d_mshrs: int = 16,
++        l2_mshrs: int = 20,
++        l3_mshrs: int = 20,
++        l2_write_buffers: int = 8,
++        l3_write_buffers: int = 16,
++        l3_prefetcher: str = "stride",
+     ):
+         super().__init__(
+             l1d_size=l1d_size,
+@@ -60,7 +67,14 @@ class ClassicPrivateL1PrivateL2SharedL3DMCache(
+             l3_size=l3_size,
+             l3_assoc=l3_assoc,
+         )
+-    
++        # Misses each cache can have in flight; defaults keep the old values
++        self._l1d_mshrs = l1d_mshrs
++        self._l2_mshrs = l2_mshrs
++        self._l3_mshrs = l3_mshrs
++        self._l2_write_buffers = l2_write_buffers
++        self._l3_write_buffers = l3_write_buffers
++        self._l3_prefetcher = l3_prefetcher
++
+     @overrides(PrivateL1PrivateL2SharedL3CacheHierarchy)
+     def incorporate_cache(self, board: AbstractBoard) -> None:
+         # Set up the system port for functional access from the simulator.
+@@ -80,7 +94,7 @@ class ClassicPrivateL1PrivateL2SharedL3DMCache(
+             for i in range(board.get_processor().get_num_cores())
+         ]
+         self.l1dcaches = [
+-            L1DCache(size=self._l1d_size)
++            L1DCache(size=self._l1d_size, mshrs=self._l1d_mshrs)
+             for i in range(board.get_processor().get_num_cores())
+         ]
+         self.l2buses = [
+@@ -88,9 +102,12 @@ class ClassicPrivateL1PrivateL2SharedL3DMCache(
+         ]
+         self.l2caches = [
+             L2Cache(size=self._l2_size,
++                    mshrs=self._l2_mshrs,
+                     writeback_clean=True)
+             for i in range(board.get_processor().get_num_cores())
+         ]
++        for l2 in self.l2caches:
++            l2.write_buffers = self._l2_write_buffers
+ 
+         self.l3cache = L2Cache(
+             size=self._l3_size,
+@@ -102,7 +119,10 @@ class ClassicPrivateL1PrivateL2SharedL3DMCache(
+             tgts_per_mshr=self._l3_tgts_per_mshr,
+             writeback_clean=False
+         )
+-        self.l3cache.write_buffers = 16
++        self.l3cache.write_buffers = self._l3_write_buffers
++        # BTP: "none" removes the L3 stride prefetcher (L1/L2 keep theirs)
++        if self._l3_prefetcher == "none":
++            self.l3cache.prefetcher = NULL
+         # self.l3cache.clusivity = "mostly_incl"
+         # There is only one l3 bus, which connects l3 to the membus
+         self.l3bus = L2XBar()

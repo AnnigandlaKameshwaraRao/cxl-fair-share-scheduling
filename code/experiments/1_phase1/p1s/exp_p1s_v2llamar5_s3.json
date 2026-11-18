@@ -1,0 +1,54 @@
+{
+  "0": {
+    "metadata": {
+      "comment": "p1s_v2llamar5_s3: v2llamar5 alone from checkpoint slot 3 (Phase 1 - Mixed, slot coverage; not used by any mix) | 1 channel, 400 ms window (max-ticks in 3 GHz cycles), stats every 10 ms",
+      "experiment": "btp",
+      "checkpoint": "",
+      "maxinsts": "",
+      "parallel-eff": "false",
+      "pool-channels": "1",
+      "max-ticks": "1200000000",
+      "stats-period-ms": "10"
+    },
+    "cpu": {
+      "ff-core": "atomic",
+      "roi-core": "timing",
+      "isa": "x86",
+      "count": "4"
+    },
+    "cache": {
+      "type": "l1l2l3",
+      "l1i-size": "32KiB",
+      "l1d-size": "32KiB",
+      "l2-size": "512KiB",
+      "l3-size": "8MiB",
+      "l3-assoc": "16",
+      "l1d-mshrs": "16",
+      "l2-mshrs": "48",
+      "l3-mshrs": "192",
+      "l2-write-buffers": "32",
+      "l3-write-buffers": "64"
+    },
+    "local-memory": {
+      "type": "ddr4",
+      "size": "1GiB"
+    },
+    "remote-memory": {
+      "size": "",
+      "shared": "false",
+      "latency": "250ns",
+      "start": "0x1c0000000",
+      "end": "0x200000000"
+    },
+    "workitem": {
+      "cmd": [
+        "numastat;",
+        "numactl --membind=1 -- /home/gem5/btp-workloads/llama-bench.m5 -m /home/gem5/btp-workloads/models/SmolLM2-135M-Q8_0.gguf -lm none -p 0 -n 2 -t 4 -r 5;",
+        "numastat;"
+      ],
+      "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v2",
+      "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+      "bootloader": ""
+    }
+  }
+}

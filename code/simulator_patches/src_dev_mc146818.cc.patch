@@ -1,0 +1,22 @@
+diff --git a/src/dev/mc146818.cc b/src/dev/mc146818.cc
+index 2bfe877b95..166395318d 100644
+--- a/src/dev/mc146818.cc
++++ b/src/dev/mc146818.cc
+@@ -277,9 +277,15 @@ MC146818::serialize(const std::string &base, CheckpointOut &cp) const
+     // save the timer tick and rtc clock tick values to correctly reschedule
+     // them during unserialize
+     //
+-    Tick rtcTimerInterruptTickOffset = event.when() - curTick();
++    // Tick rtcTimerInterruptTickOffset = event.when() - curTick();
++    // SERIALIZE_SCALAR(rtcTimerInterruptTickOffset);
++    // Tick rtcClockTickOffset = tickEvent.when() - curTick();
++    // SERIALIZE_SCALAR(rtcClockTickOffset);
++    Tick rtcTimerInterruptTickOffset =
++        (event.when() > curTick()) ? (event.when() - curTick()) : 1;
+     SERIALIZE_SCALAR(rtcTimerInterruptTickOffset);
+-    Tick rtcClockTickOffset = tickEvent.when() - curTick();
++    Tick rtcClockTickOffset =
++        (tickEvent.when() > curTick()) ? (tickEvent.when() - curTick()) : 1;
+     SERIALIZE_SCALAR(rtcClockTickOffset);
+ }
+ 

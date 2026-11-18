@@ -1,0 +1,54 @@
+{
+  "0": {
+    "metadata": {
+      "comment": "p1s_v2hnsw_s1: v2hnsw alone from checkpoint slot 1 (Phase 1 - Mixed, slot coverage; not used by any mix) | 1 channel, 400 ms window (max-ticks in 3 GHz cycles), stats every 10 ms",
+      "experiment": "btp",
+      "checkpoint": "",
+      "maxinsts": "",
+      "parallel-eff": "false",
+      "pool-channels": "1",
+      "max-ticks": "1200000000",
+      "stats-period-ms": "10"
+    },
+    "cpu": {
+      "ff-core": "atomic",
+      "roi-core": "timing",
+      "isa": "x86",
+      "count": "4"
+    },
+    "cache": {
+      "type": "l1l2l3",
+      "l1i-size": "32KiB",
+      "l1d-size": "32KiB",
+      "l2-size": "512KiB",
+      "l3-size": "8MiB",
+      "l3-assoc": "16",
+      "l1d-mshrs": "16",
+      "l2-mshrs": "48",
+      "l3-mshrs": "192",
+      "l2-write-buffers": "32",
+      "l3-write-buffers": "64"
+    },
+    "local-memory": {
+      "type": "ddr4",
+      "size": "1GiB"
+    },
+    "remote-memory": {
+      "size": "",
+      "shared": "false",
+      "latency": "250ns",
+      "start": "0x140000000",
+      "end": "0x180000000"
+    },
+    "workitem": {
+      "cmd": [
+        "numastat;",
+        "cd /home/gem5/btp-workloads/hnsw/run && OMP_NUM_THREADS=1 numactl --membind=1 -- ../../hnsw_sift1b.m5;",
+        "numastat;"
+      ],
+      "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v2",
+      "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+      "bootloader": ""
+    }
+  }
+}

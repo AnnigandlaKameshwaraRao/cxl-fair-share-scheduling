@@ -1,0 +1,61 @@
+{
+  "0": {
+    "metadata": {
+      "comment": "s1a_parbs_v5cactus_s0: v5cactus alone, slot 0, PAR-BS (cap 5) | O3 ROI cores, 1 channel, FR-FCFS bank queues, open page, 8 KiB rows, 100 ms window (max-ticks in 3 GHz cycles), stats every 10 ms",
+      "experiment": "btp",
+      "checkpoint": "",
+      "maxinsts": "",
+      "parallel-eff": "false",
+      "pool-channels": "1",
+      "max-ticks": "300000000",
+      "stats-period-ms": "10",
+      "pool-sched": "frfcfs",
+      "pool-row-size": "8KiB",
+      "pool-arb": "parbs"
+    },
+    "cpu": {
+      "ff-core": "atomic",
+      "roi-core": "o3",
+      "isa": "x86",
+      "count": "4"
+    },
+    "cache": {
+      "type": "l1l2l3",
+      "l1i-size": "32KiB",
+      "l1d-size": "32KiB",
+      "l2-size": "512KiB",
+      "l3-size": "8MiB",
+      "l3-assoc": "16",
+      "l1d-mshrs": "16",
+      "l2-mshrs": "48",
+      "l3-mshrs": "192",
+      "l2-write-buffers": "32",
+      "l3-write-buffers": "64"
+    },
+    "local-memory": {
+      "type": "ddr4",
+      "size": "1GiB"
+    },
+    "remote-memory": {
+      "size": "",
+      "shared": "false",
+      "latency": "250ns",
+      "start": "0x100000000",
+      "end": "0x140000000"
+    },
+    "workitem": {
+      "cmd": [
+        "numastat;",
+        "cd /home/gem5/btp-workloads/cactus;",
+        "OMP_NUM_THREADS=4 OMP_STACKSIZE=120M numactl --membind=1 -- ./cactus ShiftedGaugeWave.par > /tmp/cactus.txt &",
+        "sleep 5;",
+        "m5 exit;",
+        "wait;",
+        "numastat;"
+      ],
+      "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v5",
+      "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+      "bootloader": ""
+    }
+  }
+}

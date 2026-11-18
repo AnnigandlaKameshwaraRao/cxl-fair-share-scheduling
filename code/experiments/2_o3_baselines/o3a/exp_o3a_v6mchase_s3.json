@@ -1,0 +1,54 @@
+{
+  "0": {
+    "metadata": {
+      "comment": "o3a_v6mchase_s3: v6mchase alone from checkpoint slot 3 (O3 wave A) | O3 ROI cores, 1 channel, FCFS pool (Phase 1 defaults), 100 ms window (max-ticks in 3 GHz cycles), stats every 10 ms",
+      "experiment": "btp",
+      "checkpoint": "",
+      "maxinsts": "",
+      "parallel-eff": "false",
+      "pool-channels": "1",
+      "max-ticks": "300000000",
+      "stats-period-ms": "10"
+    },
+    "cpu": {
+      "ff-core": "atomic",
+      "roi-core": "o3",
+      "isa": "x86",
+      "count": "4"
+    },
+    "cache": {
+      "type": "l1l2l3",
+      "l1i-size": "32KiB",
+      "l1d-size": "32KiB",
+      "l2-size": "512KiB",
+      "l3-size": "8MiB",
+      "l3-assoc": "16",
+      "l1d-mshrs": "16",
+      "l2-mshrs": "48",
+      "l3-mshrs": "192",
+      "l2-write-buffers": "32",
+      "l3-write-buffers": "64"
+    },
+    "local-memory": {
+      "type": "ddr4",
+      "size": "1GiB"
+    },
+    "remote-memory": {
+      "size": "",
+      "shared": "false",
+      "latency": "250ns",
+      "start": "0x1c0000000",
+      "end": "0x200000000"
+    },
+    "workitem": {
+      "cmd": [
+        "numastat;",
+        "numactl --membind=1 -- /home/gem5/btp-workloads/multichase.m5 -m 256m -n 15;",
+        "numastat;"
+      ],
+      "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v2",
+      "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+      "bootloader": ""
+    }
+  }
+}

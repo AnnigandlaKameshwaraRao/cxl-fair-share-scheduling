@@ -1,0 +1,57 @@
+{
+  "0": {
+    "metadata": {
+      "comment": "s2a_fcfs_v3sc_s0: v3sc alone, slot 0, 2-channel baseline, per-host front end, FCFS | O3 ROI cores, 2 channels (64 B interleave), FCFS bank queues, closed page, 8 KiB rows, 100 ms window (max-ticks in 3 GHz cycles), stats every 10 ms",
+      "experiment": "btp",
+      "checkpoint": "",
+      "maxinsts": "",
+      "parallel-eff": "false",
+      "pool-channels": "2",
+      "max-ticks": "300000000",
+      "stats-period-ms": "10",
+      "pool-sched": "fcfs-copy",
+      "pool-row-size": "8KiB",
+      "pool-arb": "fcfs"
+    },
+    "cpu": {
+      "ff-core": "atomic",
+      "roi-core": "o3",
+      "isa": "x86",
+      "count": "4"
+    },
+    "cache": {
+      "type": "l1l2l3",
+      "l1i-size": "32KiB",
+      "l1d-size": "32KiB",
+      "l2-size": "512KiB",
+      "l3-size": "8MiB",
+      "l3-assoc": "16",
+      "l1d-mshrs": "16",
+      "l2-mshrs": "48",
+      "l3-mshrs": "192",
+      "l2-write-buffers": "32",
+      "l3-write-buffers": "64"
+    },
+    "local-memory": {
+      "type": "ddr4",
+      "size": "1GiB"
+    },
+    "remote-memory": {
+      "size": "",
+      "shared": "false",
+      "latency": "250ns",
+      "start": "0x100000000",
+      "end": "0x140000000"
+    },
+    "workitem": {
+      "cmd": [
+        "numastat;",
+        "numactl --membind=1 -- /home/gem5/btp-workloads/streamcluster.m5 10 20 128 1000000 200000 5000 none /tmp/sc_out.txt 4;",
+        "numastat;"
+      ],
+      "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v3",
+      "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+      "bootloader": ""
+    }
+  }
+}

@@ -1,0 +1,59 @@
+diff --git a/disaggregated_memory/configs/x86_unified.py b/disaggregated_memory/configs/x86_unified.py
+index c91a9d696a..b03b205c11 100644
+--- a/disaggregated_memory/configs/x86_unified.py
++++ b/disaggregated_memory/configs/x86_unified.py
+@@ -181,6 +181,13 @@ parser.add_argument(
+     default="16",
+     help="",
+ )
++# Misses in flight per cache (MSHRs) and write buffers; defaults = old values
++for opt, default in (("l1d-mshrs", 16), ("l2-mshrs", 20), ("l3-mshrs", 20),
++                     ("l2-write-buffers", 8), ("l3-write-buffers", 16)):
++    parser.add_argument("--" + opt, type=int, required=False, default=default)
++# BTP: L3 prefetcher, "stride" (the default, as before) or "none"
++parser.add_argument("--l3-prefetcher", type=str, required=False, default="stride",
++                    choices=["stride", "none"])
+ parser.add_argument(
+     "--local-memory-type",
+     type=str,
+@@ -267,6 +274,16 @@ parser.add_argument(
+     choices=["true", "false"],
+     help="Optionally the user can simulate the system with systemd",
+ )
++
++# BTP: dump (and reset) the stats every N simulated ms after the restore, so
++# each host's pool traffic can be lined up over time. 0 turns it off.
++parser.add_argument(
++    "--stats-period-ms",
++    type=float,
++    default=0,
++    required=False,
++    help="dump and reset the stats every N simulated ms (0: off)",
++)
+ args = parser.parse_args()
+ 
+ # Make sure that the default values are input correctly. if any of the input
+@@ -315,6 +332,12 @@ cache_type = {
+         l2_size=args.l2_size,
+         l3_size=args.l3_size,
+         l3_assoc=args.l3_assoc,
++        l1d_mshrs=args.l1d_mshrs,
++        l2_mshrs=args.l2_mshrs,
++        l3_mshrs=args.l3_mshrs,
++        l2_write_buffers=args.l2_write_buffers,
++        l3_write_buffers=args.l3_write_buffers,
++        l3_prefetcher=args.l3_prefetcher,
+     ),
+     "l1l2": ClassicPrivateL1PrivateL2DMCache(
+         l1i_size=args.l1i_size,
+@@ -447,6 +470,10 @@ else:
+     # This is called in SST. SST will take care of running this script.
+     # Instantiate the system regardless of the simulator.
+     m5.instantiate(ckpt_to_read_write)
++    if args.stats_period_ms > 0:
++        # 1 tick = 1 ps
++        import m5.stats
++        m5.stats.periodicStatDump(int(args.stats_period_ms * 1e9))
+ 
+     # we can still use gem5. So making another if-else
+     if use_sst == False:

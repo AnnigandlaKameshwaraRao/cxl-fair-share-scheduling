@@ -1,0 +1,214 @@
+{
+  "0": {
+    "metadata": {
+      "comment": "o3d_frfcfs_m15 (O3 wave D, 2-channel copy of wave B, Phase 1 mix 15): host0=v4tea, host1=v6mchase, host2=v2hnsw, host3=v5g500 | O3 ROI cores, 2 channels (64 B interleave), FR-FCFS bank queues, open page, 8 KiB rows, 100 ms window (max-ticks in 3 GHz cycles), stats every 10 ms",
+      "experiment": "btp",
+      "checkpoint": "",
+      "maxinsts": "",
+      "parallel-eff": "false",
+      "pool-channels": "2",
+      "max-ticks": "300000000",
+      "stats-period-ms": "10",
+      "pool-sched": "frfcfs",
+      "pool-row-size": "8KiB"
+    },
+    "cpu": {
+      "ff-core": "atomic",
+      "roi-core": "o3",
+      "isa": "x86",
+      "count": "4"
+    },
+    "cache": {
+      "type": "l1l2l3",
+      "l1i-size": "32KiB",
+      "l1d-size": "32KiB",
+      "l2-size": "512KiB",
+      "l3-size": "8MiB",
+      "l3-assoc": "16",
+      "l1d-mshrs": "16",
+      "l2-mshrs": "48",
+      "l3-mshrs": "192",
+      "l2-write-buffers": "32",
+      "l3-write-buffers": "64"
+    },
+    "local-memory": {
+      "type": "ddr4",
+      "size": "1GiB"
+    },
+    "remote-memory": {
+      "size": "",
+      "shared": "false",
+      "latency": "250ns",
+      "start": "0x100000000",
+      "end": "0x140000000"
+    },
+    "workitem": {
+      "cmd": [
+        "numastat;",
+        "cd /home/gem5/btp-workloads/tealeaf;",
+        "OMP_NUM_THREADS=4 OMP_STACKSIZE=120M numactl --membind=1 -- ./tealeaf > /tmp/tea.txt &",
+        "sleep 20;",
+        "m5 exit;",
+        "wait;",
+        "numastat;"
+      ],
+      "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v4",
+      "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+      "bootloader": ""
+    }
+  },
+  "1": {
+    "metadata": {
+      "comment": "v6mchase: multichase 1 thread on pool slot 1 (4 cores, higher cache limits, new image) | -n 15 (16 x 25 ms samples, 1 dropped) so the chase covers the whole 400 ms window",
+      "experiment": "btp",
+      "checkpoint": "",
+      "maxinsts": "",
+      "parallel-eff": "false",
+      "pool-channels": "1"
+    },
+    "cpu": {
+      "ff-core": "atomic",
+      "roi-core": "o3",
+      "isa": "x86",
+      "count": "4"
+    },
+    "cache": {
+      "type": "l1l2l3",
+      "l1i-size": "32KiB",
+      "l1d-size": "32KiB",
+      "l2-size": "512KiB",
+      "l3-size": "8MiB",
+      "l3-assoc": "16",
+      "l1d-mshrs": "16",
+      "l2-mshrs": "48",
+      "l3-mshrs": "192",
+      "l2-write-buffers": "32",
+      "l3-write-buffers": "64"
+    },
+    "local-memory": {
+      "type": "ddr4",
+      "size": "1GiB"
+    },
+    "remote-memory": {
+      "size": "",
+      "shared": "false",
+      "latency": "250ns",
+      "start": "0x140000000",
+      "end": "0x180000000"
+    },
+    "workitem": {
+      "cmd": [
+        "numastat;",
+        "numactl --membind=1 -- /home/gem5/btp-workloads/multichase.m5 -m 256m -n 15;",
+        "numastat;"
+      ],
+      "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v2",
+      "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+      "bootloader": ""
+    }
+  },
+  "2": {
+    "metadata": {
+      "comment": "v2hnsw: hnswlib sift_1b on 1M BIGANN vectors, 1 thread on pool slot 2 (4 cores, higher cache limits, new image)",
+      "experiment": "btp",
+      "checkpoint": "",
+      "maxinsts": "",
+      "parallel-eff": "false",
+      "pool-channels": "1"
+    },
+    "cpu": {
+      "ff-core": "atomic",
+      "roi-core": "o3",
+      "isa": "x86",
+      "count": "4"
+    },
+    "cache": {
+      "type": "l1l2l3",
+      "l1i-size": "32KiB",
+      "l1d-size": "32KiB",
+      "l2-size": "512KiB",
+      "l3-size": "8MiB",
+      "l3-assoc": "16",
+      "l1d-mshrs": "16",
+      "l2-mshrs": "48",
+      "l3-mshrs": "192",
+      "l2-write-buffers": "32",
+      "l3-write-buffers": "64"
+    },
+    "local-memory": {
+      "type": "ddr4",
+      "size": "1GiB"
+    },
+    "remote-memory": {
+      "size": "",
+      "shared": "false",
+      "latency": "250ns",
+      "start": "0x180000000",
+      "end": "0x1c0000000"
+    },
+    "workitem": {
+      "cmd": [
+        "numastat;",
+        "cd /home/gem5/btp-workloads/hnsw/run && OMP_NUM_THREADS=1 numactl --membind=1 -- ../../hnsw_sift1b.m5;",
+        "numastat;"
+      ],
+      "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v2",
+      "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+      "bootloader": ""
+    }
+  },
+  "3": {
+    "metadata": {
+      "comment": "v5g500: SPEC CPU2026 854.graph500_s, BFS part of the train input, 4 OpenMP threads; checkpoint 4 s into the run (BFS runs about 2.7-6.3 s under KVM), slot 3",
+      "experiment": "btp",
+      "checkpoint": "",
+      "maxinsts": "",
+      "parallel-eff": "false",
+      "pool-channels": "1"
+    },
+    "cpu": {
+      "ff-core": "atomic",
+      "roi-core": "o3",
+      "isa": "x86",
+      "count": "4"
+    },
+    "cache": {
+      "type": "l1l2l3",
+      "l1i-size": "32KiB",
+      "l1d-size": "32KiB",
+      "l2-size": "512KiB",
+      "l3-size": "8MiB",
+      "l3-assoc": "16",
+      "l1d-mshrs": "16",
+      "l2-mshrs": "48",
+      "l3-mshrs": "192",
+      "l2-write-buffers": "32",
+      "l3-write-buffers": "64"
+    },
+    "local-memory": {
+      "type": "ddr4",
+      "size": "1GiB"
+    },
+    "remote-memory": {
+      "size": "",
+      "shared": "false",
+      "latency": "250ns",
+      "start": "0x1c0000000",
+      "end": "0x200000000"
+    },
+    "workitem": {
+      "cmd": [
+        "numastat;",
+        "cd /home/gem5/btp-workloads/graph500;",
+        "OMP_NUM_THREADS=4 OMP_STACKSIZE=120M numactl --membind=1 -- ./graph500 -s 20 -e 16 -o bfs_train.bin -f 1 > /tmp/g500.txt &",
+        "sleep 4;",
+        "m5 exit;",
+        "wait;",
+        "numastat;"
+      ],
+      "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v5",
+      "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+      "bootloader": ""
+    }
+  }
+}

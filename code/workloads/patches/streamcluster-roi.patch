@@ -1,0 +1,34 @@
+--- streamcluster.cpp.orig	2026-10-25 10:47:36.841159264 +0530
++++ streamcluster.cpp	2026-10-25 10:47:36.851737516 +0530
+@@ -35,6 +35,7 @@
+ #ifdef ENABLE_PARSEC_HOOKS
+ #include <hooks.h>
+ #endif
++#include "../../roi.h"  // BTP: our standard gem5 marker protocol
+ 
+ using namespace std;
+ 
+@@ -1899,6 +1900,14 @@
+       points.p[i].weight = 1.0;
+     }
+ 
++    // BTP: the input points are generated inside PARSEC's ROI, so the
++    // checkpoint and the measured region start once the first chunk is in
++    // memory, at the start of its clustering.
++    if( IDoffset == 0 ) {
++      roi_checkpoint();
++      roi_begin();
++    }
++
+ #ifdef TBB_VERSION
+     switch_membership = (bool*)memoryBool.allocate(points.num*sizeof(bool), NULL);
+     is_center = (bool*)calloc(points.num,sizeof(bool));
+@@ -2032,6 +2041,8 @@
+ #ifdef ENABLE_PARSEC_HOOKS
+   __parsec_roi_end();
+ #endif
++  roi_end();  // BTP
++  roi_finish();  // BTP: ends this host's simulation
+ 
+   delete stream;
+ 

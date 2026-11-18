@@ -1,0 +1,29 @@
+diff --git a/ext/sst/sst_responder_subcomponent.cc b/ext/sst/sst_responder_subcomponent.cc
+index 8bb1c06b77..0c0666367a 100644
+--- a/ext/sst/sst_responder_subcomponent.cc
++++ b/ext/sst/sst_responder_subcomponent.cc
+@@ -259,19 +259,23 @@ SSTResponderSubComponent::portEventHandler(
+             responseQueue.push(pkt);
+         }
+     } else {
+-        // we can handle a few types of requests.
++        // we can handle a few types of requests. Nothing waits for these
++        // (e.g. the WriteResp for a write-back), so just free them.
+         if (SST::Interfaces::StandardMem::Read* test =
+                 dynamic_cast<SST::Interfaces::StandardMem::Read*>(request)) {
++            delete request;
+             return;
+         }
+         else if (SST::Interfaces::StandardMem::ReadResp* test =
+                 dynamic_cast<SST::Interfaces::StandardMem::ReadResp*>(
+                 request)) {
++            delete request;
+             return;
+         }
+         else if (SST::Interfaces::StandardMem::WriteResp* test =
+                 dynamic_cast<SST::Interfaces::StandardMem::WriteResp*>(
+                 request)) {
++            delete request;
+             return;
+         }
+         // for Snoop/no response needed

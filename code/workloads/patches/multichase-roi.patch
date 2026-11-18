@@ -1,0 +1,62 @@
+diff --git a/multichase.c b/multichase.c
+index f9c23f8..791a2f2 100644
+--- a/multichase.c
++++ b/multichase.c
+@@ -31,6 +31,7 @@
+ #include "expand.h"
+ #include "permutation.h"
+ #include "timer.h"
++#include "../roi.h"  // BTP: gem5 region-of-interest markers
+ #include "util.h"
+ 
+ // The total memory, stride, and TLB locality have been chosen carefully for
+@@ -55,7 +56,10 @@
+ #define DEF_NR_THREADS ((size_t)1)
+ #define DEF_CACHE_FLUSH ((size_t)64 * 1024 * 1024)
+ #define DEF_OFFSET ((size_t)0)
++// BTP: overridable at build time (-DDELAY_USECS=...); upstream default 0.5 s
++#ifndef DELAY_USECS
+ #define DELAY_USECS 500000
++#endif
+ #define NSECS_PER_USEC 1000
+ #define NSECS_PER_MSEC (1000 * 1000)
+ 
+@@ -880,6 +884,9 @@ int main(int argc, char **argv) {
+   }
+   pthread_mutex_unlock(&wait_mutex);
+ 
++  // BTP: setup done (chases generated, threads chasing); checkpoint here
++  roi_checkpoint();
++
+   // now start sampling their progress
+  if (!duration_nsecs)
+     duration_nsecs = nr_samples * DELAY_USECS * NSECS_PER_USEC;
+@@ -910,7 +917,10 @@ int main(int argc, char **argv) {
+     // we drop the first sample because it's fairly likely one
+     // thread had some advantage initially due to still having
+     // portions of the chase in a cache.
+-    if (sample_no == 0) continue;
++    if (sample_no == 0) {
++      roi_begin();  // BTP: measure from the end of the dropped first sample
++      continue;
++    }
+ 
+     if (verbosity > 0) {
+       timestamp();
+@@ -939,6 +949,7 @@ int main(int argc, char **argv) {
+       break;
+     }
+   }
++  roi_end();  // BTP
+   timestamp();
+   double res;
+   if (print_average) {
+@@ -947,6 +958,8 @@ int main(int argc, char **argv) {
+     res = best * nr_threads;
+   }
+   printf("%6.*f\n", res < 100. ? 3 : 1, res);
++  fflush(stdout);
++  roi_finish();  // BTP
+ 
+   exit(0);
+ }

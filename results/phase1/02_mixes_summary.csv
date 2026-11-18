@@ -1,0 +1,19 @@
+mix,workloads_slot0_to_3,demand_alone_GB_per_s,pool_delivered_GB_per_s,latency_increase_min_pct,latency_increase_max_pct,instruction_rate_change_worst_pct,instruction_rate_change_best_pct,weighted_speedup_by_instructions_of_4,jain_by_instructions
+1,tealeaf / STREAM / fotonik3d / multichase,19.98,10.22,83.3,233.3,-56.5,-13.8,2.44,0.939
+2,tealeaf / streamcluster / roms / graph500,16.85,10.88,64.4,123.4,-61.2,-25.8,2.46,0.949
+3,STREAM / fotonik3d / LLM inference / hnswlib,15.72,10.05,51.9,160.2,-40.6,-19.7,2.73,0.988
+4,tealeaf / fotonik3d / roms / MERCI,18.70,10.93,122.4,218.9,-48.9,-21.6,2.43,0.971
+5,STREAM / streamcluster / LLM inference / cactus,13.66,9.35,36.2,96.5,-34.4,-17.4,2.94,0.993
+6,tealeaf / fotonik3d / streamcluster / Marian,17.40,10.55,90.8,179.7,-44.7,-0.1,2.81,0.941
+7,tealeaf / STREAM / hnswlib / multichase,14.12,9.32,52.9,181.1,-34.6,-20.1,2.86,0.994
+8,fotonik3d / roms / graph500 / cactus,10.76,9.56,35.7,52.1,-19.4,-7.9,3.52,0.997
+9,streamcluster / LLM inference / MERCI / Marian,8.22,7.71,7.8,15.0,-6.0,-0.0,3.88,1.000
+10,tealeaf / LLM inference / hnswlib / multichase,10.45,9.14,19.3,62.6,-14.8,-6.2,3.59,0.999
+11,STREAM / roms / MERCI / graph500,13.38,9.24,38.3,114.0,-58.9,-5.4,2.87,0.932
+12,fotonik3d / streamcluster / cactus / Marian,11.01,9.48,40.8,65.4,-19.9,-0.0,3.54,0.992
+13,tealeaf / STREAM / fotonik3d / streamcluster,23.91,10.74,95.9,269.2,-60.8,-45.9,1.88,0.983
+14,fotonik3d / roms / LLM inference / streamcluster,16.33,11.46,83.1,103.9,-34.4,-19.7,2.98,0.994
+15,tealeaf / multichase / hnswlib / graph500,9.25,8.34,10.9,49.7,-23.9,-5.2,3.58,0.992
+16,roms / MERCI / cactus / multichase,6.54,6.16,7.9,24.6,-5.8,-2.6,3.82,1.000
+17,LLM inference / MERCI / hnswlib / Marian,4.42,4.37,2.2,4.1,-0.9,14.0,4.14,0.997
+18,MERCI / graph500 / hnswlib / multichase,3.03,3.03,0.9,3.3,-0.5,16.2,4.16,0.995

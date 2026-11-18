@@ -1,0 +1,121 @@
+diff --git a/src/sst/external_memory.cc b/src/sst/external_memory.cc
+index 937de5f12f..4ecafbc774 100644
+--- a/src/sst/external_memory.cc
++++ b/src/sst/external_memory.cc
+@@ -116,13 +116,34 @@ ExternalMemory::sendTimingResp(gem5::PacketPtr pkt)
+     // increment the stats counters.
+     bool return_status = outgoingPort.sendTimingResp(pkt);
+     if (return_status) {
+-        // This packet got a response! Add the latency to the stats.
+-        stats.packetLatency.sample(
+-                gem5::curTick() - outstanding_requests[pkt]);
++        // This packet got a response! Add the latency to the stats (overall
++        // and for the request's category) and delete its entry.
++        auto it = outstanding_requests.find(pkt);
++        if (it != outstanding_requests.end()) {
++            const gem5::Tick lat = gem5::curTick() - it->second.sent;
++            stats.packetLatency.sample(lat);
++            switch (it->second.cat) {
++              case ReqDemandRead: stats.latDemandRead.sample(lat); break;
++              case ReqDemandReadEx: stats.latDemandReadEx.sample(lat); break;
++              case ReqPrefetch: stats.latPrefetch.sample(lat); break;
++              case ReqPageWalk: stats.latPageWalk.sample(lat); break;
++              default: stats.latOther.sample(lat); break;
++            }
++            // Reads faster than this cannot have crossed the modelled CXL
++            // link; count them and log the first few for diagnosis.
++            if (lat < 100000) {
++                ++stats.numShortLatency;
++                if (shortLatencyLogged < 30) {
++                    ++shortLatencyLogged;
++                    warn("short-latency pool response: %d ps, addr %#x, "
++                         "cmd %s, category %d, requestor %d",
++                         lat, it->second.addr, it->second.cmd.toString().c_str(),
++                         it->second.cat, it->second.requestor);
++                }
++            }
++            outstanding_requests.erase(it);
++        }
+ 
+-        // delete this entry to save some memory.
+-        outstanding_requests.erase(pkt);
+-       
+         // Count this packet as an incoming packet.
+         ++stats.numIncomingPackets;
+ 
+@@ -254,8 +275,22 @@ bool ExternalMemory::handleTiming(PacketPtr pkt)
+         assert(false && "The external memory cannot handle this request!");
+     }
+ 
+-    // Keep the time when this packet was sent out to SST.
+-    outstanding_requests[pkt] = gem5::curTick();
++    // Keep the time when this packet was sent out to SST. Only packets that
++    // expect a response are tracked (writebacks are never answered by SST, and
++    // tracking them made this map grow without bound).
++    if (pkt->needsResponse()) {
++        uint8_t cat = ReqOther;
++        if (pkt->req->isPTWalk())
++            cat = ReqPageWalk;
++        else if (pkt->req->isPrefetch())
++            cat = ReqPrefetch;
++        else if (pkt->cmd == MemCmd::ReadExReq)
++            cat = ReqDemandReadEx;
++        else if (pkt->isRead())
++            cat = ReqDemandRead;
++        outstanding_requests[pkt] = {gem5::curTick(), cat, pkt->getAddr(),
++            pkt->cmd, pkt->req->requestorId()};
++    }
+ 
+     // Take samples of the size of this map
+     stats.outstandingPackets.sample(outstanding_requests.size());
+@@ -272,6 +307,12 @@ bool ExternalMemory::handleTiming(PacketPtr pkt)
+             pkt->writeData(host_addr);
+     }
+ 
++    // SST copied the data into its own request and will not answer a packet
++    // that needs no response, so nobody else frees it (this leaked every
++    // write-back sent to the pool).
++    if (!pkt->needsResponse())
++        pendingDelete.reset(pkt);
++
+ 
+     // This always returns true.
+     return true;
+@@ -312,15 +353,32 @@ ExternalMemory::StatGroup::StatGroup(statistics::Group *parent)
+     ADD_STAT(packetLatency, statistics::units::Count::get(),
+             "Histogram of packet latency sent via this port."),
+     ADD_STAT(outstandingPackets, statistics::units::Count::get(),
+-            "Histogram of outstanding packets.")
++            "Histogram of outstanding packets."),
++    ADD_STAT(latDemandRead, statistics::units::Count::get(),
++            "Latency of demand reads (ReadReq/ReadSharedReq/ReadCleanReq)"),
++    ADD_STAT(latDemandReadEx, statistics::units::Count::get(),
++            "Latency of demand reads for ownership (ReadExReq)"),
++    ADD_STAT(latPrefetch, statistics::units::Count::get(),
++            "Latency of hardware/software prefetch reads"),
++    ADD_STAT(latPageWalk, statistics::units::Count::get(),
++            "Latency of page-table-walk reads"),
++    ADD_STAT(latOther, statistics::units::Count::get(),
++            "Latency of other requests that expect a response"),
++    ADD_STAT(numShortLatency, statistics::units::Count::get(),
++            "Responses faster than 100 ns (cannot have crossed the link)")
+ {
+     using namespace statistics;
+     // Initialize any histogram stats here
++    // 5 ns buckets (ticks are ps) from 0 to 2 us, plus underflow/overflow
++    // counts; empty buckets are not printed.
+     packetLatency
+-        .init(2)
+-        .flags(pdf);
++        .init(0, 2000000, 5000)
++        .flags(pdf | nozero);
+     outstandingPackets
+-        .init(2)
+-        .flags(pdf);
++        .init(0, 255, 1)
++        .flags(pdf | nozero);
++    for (auto *d : {&latDemandRead, &latDemandReadEx, &latPrefetch,
++                    &latPageWalk, &latOther})
++        d->init(0, 2000000, 5000).flags(pdf | nozero);
+ }
+ }; // namespace gem5

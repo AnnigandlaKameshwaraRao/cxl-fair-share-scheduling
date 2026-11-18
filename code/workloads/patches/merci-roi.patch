@@ -1,0 +1,49 @@
+diff --git a/4_performance_evaluation/src/eval_baseline.cc b/4_performance_evaluation/src/eval_baseline.cc
+index 4c7877a..a193495 100644
+--- a/4_performance_evaluation/src/eval_baseline.cc
++++ b/4_performance_evaluation/src/eval_baseline.cc
+@@ -1,3 +1,4 @@
++#include "../../../roi.h"  // BTP: gem5 region-of-interest markers
+ #include "utils.h"
+ #include "evaluator.h"
+ 
+@@ -94,6 +95,7 @@ int main(int argc, const char *argv[]) {
+     ///////////////////////////////////////////////////////////////////////////// 
+     cout << "Eval Phase 3: Running Baseline..." << endl << endl;
+     /////////////////////////////////////////////////////////////////////////////     
++    roi_checkpoint();  // BTP: end of setup (queries read, table built)
+     eval<Baseline>(baseline, qd, core_count, t, repeat, "Baseline");
+ 
+     #if DEBUG
+@@ -109,5 +111,6 @@ int main(int argc, const char *argv[]) {
+     }
+     cout << "Correct Value : " << rsum << "\n";
+     #endif
++    roi_finish();  // BTP: ends this host's simulation
+     return 0;
+ }
+diff --git a/4_performance_evaluation/src/utils.h b/4_performance_evaluation/src/utils.h
+index 43c2bc7..3cef809 100644
+--- a/4_performance_evaluation/src/utils.h
++++ b/4_performance_evaluation/src/utils.h
+@@ -1,3 +1,4 @@
++#include "../../../roi.h"  // BTP: gem5 region-of-interest markers
+ #include <iostream>
+ #include <string>
+ #include <fstream>
+@@ -184,6 +185,7 @@ void eval(T &ep, QueryData &qd, const size_t core_count, vector<thread> &t, int
+         ep.init(qd.query.size());
+         ep.setqbase(qd.partitioned_query);
+         cacheFlush();
++        roi_begin();  // BTP: one measured region per repeat
+         if(core_count > 0) {
+             for(size_t i=0; i<core_count; i++) {
+                 t[i] = thread(&T::process, &ep, ref(qd.partitioned_query[i]), i);
+@@ -197,6 +199,7 @@ void eval(T &ep, QueryData &qd, const size_t core_count, vector<thread> &t, int
+         }
+         else
+             assert(false);
++        roi_end();  // BTP
+         time_accum += ((double)convertTime(ep.start, ep.end)) / 1000 / 1000;
+ 
+         #if DEBUG

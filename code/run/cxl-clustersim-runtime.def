@@ -1,0 +1,29 @@
+Bootstrap: docker
+From: ubuntu:24.04
+
+%post
+    apt-get update
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        build-essential git m4 scons zlib1g zlib1g-dev \
+        libprotobuf-dev protobuf-compiler libprotoc-dev \
+        libgoogle-perftools-dev python3-dev python-is-python3 \
+        libboost-all-dev pkg-config libpng-dev \
+        openmpi-bin libopenmpi-dev \
+        python3 python3-pip
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+
+%environment
+    export LC_ALL=C
+
+%runscript
+    echo "CXL-ClusterSim runtime container -- exec your commands via apptainer exec"
+
+%labels
+    Description "Runtime environment for pre-built gem5 + SST + CXL-ClusterSim binaries"
+
+%help
+    This container provides the Ubuntu 24.04 runtime libraries (Boost, Protobuf,
+    OpenMPI, Python 3.12, etc.) needed to RUN already-compiled gem5/SST binaries.
+    It does NOT rebuild gem5 or SST -- those are bind-mounted in from the host
+    at runtime via $HOME or an explicit --bind path.

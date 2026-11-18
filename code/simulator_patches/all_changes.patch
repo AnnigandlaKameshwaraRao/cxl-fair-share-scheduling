@@ -1,0 +1,589 @@
+diff --git a/disaggregated_memory/boards/x86_main_board.py b/disaggregated_memory/boards/x86_main_board.py
+index b8c446abe6..c23939245f 100644
+--- a/disaggregated_memory/boards/x86_main_board.py
++++ b/disaggregated_memory/boards/x86_main_board.py
+@@ -437,6 +437,10 @@ class X86ComposableMemoryBoard(X86Board):
+                 bootstrap=(i == 0),
+             )
+             base_entries.append(bp)
++            # Linux reads the CPU list from the ACPI MADT, so every core needs
++            # a LAPIC entry there too (otherwise only the boot CPU comes up).
++            lapic = X86ACPIMadtLAPIC(acpi_processor_id=i, apic_id=i, flags=1)
++            madt_entries.append(lapic)
+ 
+         io_apic = X86IntelMPIOAPIC(
+             id=self.get_processor().get_num_cores(),
+@@ -662,6 +666,10 @@ class X86ComposableMemoryBoard(X86Board):
+             "console=ttyS0",
+             "lpj=7999923",
+             "root=/dev/sda2",
++            # gem5's timing CPUs mishandle MWAIT in the idle loop (an idle
++            # second core page-faults and panics), so idle with HLT instead.
++            # BTP_GUEST_IDLE=poll overrides it at boot (checkpoint) time.
++            "idle=" + os.environ.get("BTP_GUEST_IDLE", "halt"),
+         ]
+ 
+ 
+diff --git a/disaggregated_memory/cachehierarchies/dm_caches.py b/disaggregated_memory/cachehierarchies/dm_caches.py
+index 2e47c0f4bd..4cfb6b647d 100644
+--- a/disaggregated_memory/cachehierarchies/dm_caches.py
++++ b/disaggregated_memory/cachehierarchies/dm_caches.py
+@@ -31,6 +31,7 @@ from cachehierarchies.private_l1_private_l2_shared_l3_cache_hierarchy import (
+ from m5.objects import L2XBar
+ 
+ from gem5.components.boards.abstract_board import AbstractBoard
++from m5.params import NULL
+ from gem5.components.cachehierarchies.classic.caches.l1dcache import L1DCache
+ from gem5.components.cachehierarchies.classic.caches.l1icache import L1ICache
+ from gem5.components.cachehierarchies.classic.caches.l2cache import L2Cache
+@@ -52,6 +53,12 @@ class ClassicPrivateL1PrivateL2SharedL3DMCache(
+         l2_size: str,
+         l3_size: str,
+         l3_assoc: int = 16,
++        l1d_mshrs: int = 16,
++        l2_mshrs: int = 20,
++        l3_mshrs: int = 20,
++        l2_write_buffers: int = 8,
++        l3_write_buffers: int = 16,
++        l3_prefetcher: str = "stride",
+     ):
+         super().__init__(
+             l1d_size=l1d_size,
+@@ -60,7 +67,14 @@ class ClassicPrivateL1PrivateL2SharedL3DMCache(
+             l3_size=l3_size,
+             l3_assoc=l3_assoc,
+         )
+-    
++        # Misses each cache can have in flight; defaults keep the old values
++        self._l1d_mshrs = l1d_mshrs
++        self._l2_mshrs = l2_mshrs
++        self._l3_mshrs = l3_mshrs
++        self._l2_write_buffers = l2_write_buffers
++        self._l3_write_buffers = l3_write_buffers
++        self._l3_prefetcher = l3_prefetcher
++
+     @overrides(PrivateL1PrivateL2SharedL3CacheHierarchy)
+     def incorporate_cache(self, board: AbstractBoard) -> None:
+         # Set up the system port for functional access from the simulator.
+@@ -80,7 +94,7 @@ class ClassicPrivateL1PrivateL2SharedL3DMCache(
+             for i in range(board.get_processor().get_num_cores())
+         ]
+         self.l1dcaches = [
+-            L1DCache(size=self._l1d_size)
++            L1DCache(size=self._l1d_size, mshrs=self._l1d_mshrs)
+             for i in range(board.get_processor().get_num_cores())
+         ]
+         self.l2buses = [
+@@ -88,9 +102,12 @@ class ClassicPrivateL1PrivateL2SharedL3DMCache(
+         ]
+         self.l2caches = [
+             L2Cache(size=self._l2_size,
++                    mshrs=self._l2_mshrs,
+                     writeback_clean=True)
+             for i in range(board.get_processor().get_num_cores())
+         ]
++        for l2 in self.l2caches:
++            l2.write_buffers = self._l2_write_buffers
+ 
+         self.l3cache = L2Cache(
+             size=self._l3_size,
+@@ -102,7 +119,10 @@ class ClassicPrivateL1PrivateL2SharedL3DMCache(
+             tgts_per_mshr=self._l3_tgts_per_mshr,
+             writeback_clean=False
+         )
+-        self.l3cache.write_buffers = 16
++        self.l3cache.write_buffers = self._l3_write_buffers
++        # BTP: "none" removes the L3 stride prefetcher (L1/L2 keep theirs)
++        if self._l3_prefetcher == "none":
++            self.l3cache.prefetcher = NULL
+         # self.l3cache.clusivity = "mostly_incl"
+         # There is only one l3 bus, which connects l3 to the membus
+         self.l3bus = L2XBar()
+diff --git a/disaggregated_memory/configs/x86_unified.py b/disaggregated_memory/configs/x86_unified.py
+index c91a9d696a..b03b205c11 100644
+--- a/disaggregated_memory/configs/x86_unified.py
++++ b/disaggregated_memory/configs/x86_unified.py
+@@ -181,6 +181,13 @@ parser.add_argument(
+     default="16",
+     help="",
+ )
++# Misses in flight per cache (MSHRs) and write buffers; defaults = old values
++for opt, default in (("l1d-mshrs", 16), ("l2-mshrs", 20), ("l3-mshrs", 20),
++                     ("l2-write-buffers", 8), ("l3-write-buffers", 16)):
++    parser.add_argument("--" + opt, type=int, required=False, default=default)
++# BTP: L3 prefetcher, "stride" (the default, as before) or "none"
++parser.add_argument("--l3-prefetcher", type=str, required=False, default="stride",
++                    choices=["stride", "none"])
+ parser.add_argument(
+     "--local-memory-type",
+     type=str,
+@@ -267,6 +274,16 @@ parser.add_argument(
+     choices=["true", "false"],
+     help="Optionally the user can simulate the system with systemd",
+ )
++
++# BTP: dump (and reset) the stats every N simulated ms after the restore, so
++# each host's pool traffic can be lined up over time. 0 turns it off.
++parser.add_argument(
++    "--stats-period-ms",
++    type=float,
++    default=0,
++    required=False,
++    help="dump and reset the stats every N simulated ms (0: off)",
++)
+ args = parser.parse_args()
+ 
+ # Make sure that the default values are input correctly. if any of the input
+@@ -315,6 +332,12 @@ cache_type = {
+         l2_size=args.l2_size,
+         l3_size=args.l3_size,
+         l3_assoc=args.l3_assoc,
++        l1d_mshrs=args.l1d_mshrs,
++        l2_mshrs=args.l2_mshrs,
++        l3_mshrs=args.l3_mshrs,
++        l2_write_buffers=args.l2_write_buffers,
++        l3_write_buffers=args.l3_write_buffers,
++        l3_prefetcher=args.l3_prefetcher,
+     ),
+     "l1l2": ClassicPrivateL1PrivateL2DMCache(
+         l1i_size=args.l1i_size,
+@@ -447,6 +470,10 @@ else:
+     # This is called in SST. SST will take care of running this script.
+     # Instantiate the system regardless of the simulator.
+     m5.instantiate(ckpt_to_read_write)
++    if args.stats_period_ms > 0:
++        # 1 tick = 1 ps
++        import m5.stats
++        m5.stats.periodicStatDump(int(args.stats_period_ms * 1e9))
+ 
+     # we can still use gem5. So making another if-else
+     if use_sst == False:
+diff --git a/disaggregated_memory/unified_run.py b/disaggregated_memory/unified_run.py
+index 3c11dc38bd..6145b21393 100644
+--- a/disaggregated_memory/unified_run.py
++++ b/disaggregated_memory/unified_run.py
+@@ -867,9 +867,10 @@ until_when = "0"
+ # This must be in the metadata of the simulation. We need to simulate all the
+ # systems until that point to have an accurate simulation stats!
+ try:
+-    if jobs[0]["metadata"]["max-ticks"] != "":
+-        # There is a value! Must be in unit time (i.e. s)
+-        until_when = jobs[0]["metadata"]["max-ticks"]
++    # BTP: joblist keys are strings ("0", "1", ...), so jobs[0] never matched.
++    # The value is in gem5-component clock cycles since the start/restore.
++    if jobs["0"]["metadata"]["max-ticks"] != "":
++        until_when = jobs["0"]["metadata"]["max-ticks"]
+ except KeyError:
+     print("There is no max time set!")
+     # There is no max-time. It's okay, we can live with it.
+diff --git a/ext/sst/gem5.cc b/ext/sst/gem5.cc
+index 9346549a72..d4ebc6b481 100644
+--- a/ext/sst/gem5.cc
++++ b/ext/sst/gem5.cc
+@@ -295,6 +295,22 @@ gem5Component::clockTick(SST::Cycle_t currentCycle)
+     // what to do in a SST's cycle
+     gem5::GlobalSimLoopExitEvent *event = simulateGem5(currentCycle);
+     clocksProcessed++;
++    // BTP: honour max_ticks (in this component's clock cycles since the
++    // start/restore) on every tick, not only when gem5 raises an exit event,
++    // so a run can stop after a fixed window in the middle of a workload.
++    if (str_max_ticks != "" && !did_gem5_end &&
++        currentCycle >= gem5_max_ticks) {
++        output.output("exiting: max_ticks reached at cycle %lu, curTick()=%lu\n",
++            currentCycle, gem5::curTick());
++        const std::vector<std::string> output_stats_commands = {
++            "import m5.stats",
++            "m5.stats.dump()",
++        };
++        execPythonCommands(output_stats_commands);
++        did_gem5_end = true;
++        primaryComponentOKToEndSim();
++        return true;
++    }
+     // gem5 exits due to reasons other than reaching simulation limit
+     if (event != gem5::simulate_limit_event) {
+         bool return_value = false;
+diff --git a/ext/sst/sst/unified_sst.py b/ext/sst/sst/unified_sst.py
+index 9c8bc17719..6d0339369e 100644
+--- a/ext/sst/sst/unified_sst.py
++++ b/ext/sst/sst/unified_sst.py
+@@ -206,8 +206,35 @@ memctrl.addParams({
+         util_int_to_size(total_sst_memory)).getRoundedValue(),
+ })
+ 
+-# We need a DDR4-like memory device. This is hardcoded.
+-memory = memctrl.setSubComponent( "backend", "memHierarchy.timingDRAM")
++# We need a DDR4-like memory device. The channel count (pool bandwidth) can be
++# set per run with "pool-channels" in host 0's metadata; default 4.
++pool_channels = int(jobs["0"]["metadata"].get("pool-channels", "4") or "4")
++print("pool channels:", pool_channels)
++# BTP: per-bank DRAM scheduling of the pool channel, set per run with "pool-sched"
++# in host 0's metadata (needs libbtpmem.so in ext/sst for anything but "fcfs"):
++#   fcfs      stock memHierarchy.timingDRAM: FIFO bank queues, closed page (Phase 1)
++#   frfcfs    btpmem.timingDRAM, lazy pop, FR-FCFS bank queues, open page
++#   fcfs-open btpmem.timingDRAM, lazy pop, FIFO bank queues, open page
++#   fcfs-copy btpmem.timingDRAM in stock mode (eager pop, FIFO, closed page), for
++#             checking the copy against stock and counting row hits
++# "pool-rowhit-cap" (frfcfs only): consecutive row hits that may bypass an older
++# request before the oldest is served; 0 = no cap.
++pool_sched = jobs["0"]["metadata"].get("pool-sched", "fcfs") or "fcfs"
++pool_rowhit_cap = int(jobs["0"]["metadata"].get("pool-rowhit-cap", "0") or "0")
++print("pool scheduler:", pool_sched, "row-hit cap:", pool_rowhit_cap)
++sched_params = {
++    "fcfs": {},
++    "frfcfs": {"channel.rank.bank.lazyPop": 1,
++               "channel.rank.bank.transactionQ": "btpmem.frfcfsTransactionQ",
++               "channel.rank.bank.transactionQ.maxRowHits": pool_rowhit_cap,
++               "channel.rank.bank.pagePolicy.close": 0},
++    "fcfs-open": {"channel.rank.bank.lazyPop": 1,
++                  "channel.rank.bank.pagePolicy.close": 0},
++    "fcfs-copy": {},
++}[pool_sched]
++backend = "memHierarchy.timingDRAM" if pool_sched == "fcfs" else "btpmem.timingDRAM"
++memory = memctrl.setSubComponent( "backend", backend)
++memory.addParams(sched_params)
+ memory.addParams({
+     "id" : 0,
+     "addrMapper" : "memHierarchy.simpleAddrMapper",
+@@ -215,12 +242,41 @@ memory.addParams({
+     "addrMapper.row_size" : "1KiB",
+     "clock" : "1.2GHz",
+     "mem_size" : util_int_to_size(total_sst_memory),
+-    "channels" : 4,
++    "channels" : pool_channels,
+     "channel.numRanks" : 2,
+     "channel.rank.numBanks" : 16,
+     "channel.rank.bank.TRP" : 14,
+     "printconfig" : 1,
+ })
++# BTP: DRAM row (page) size of the pool, set per run with "pool-row-size" in host 0's
++# metadata, e.g. "8KiB" (DDR4 rank) or "4KiB" (DDR5 x8/x16 subchannel). Empty keeps
++# simpleAddrMapper, whose rows are 16 KiB whatever row_size says (Phase 1).
++pool_row_size = jobs["0"]["metadata"].get("pool-row-size", "") or ""
++print("pool row size:", pool_row_size or "16KiB (simpleAddrMapper)")
++if pool_row_size:
++    memory.addParams({"addrMapper" : "btpmem.rowAddrMapper",
++                      "addrMapper.row_size" : pool_row_size})
++# BTP: per-host front end of the pool (btpmem.timingDRAM "arb"), set per run in host 0's
++# metadata. Empty "pool-arb" keeps the stock front end (all O3 runs).
++#   pool-arb         scheduler: fcfs | frfcfs (oldest first across hosts, no host priority);
++#                    static (fixed host ranks, pool-arb-params {"ranks": "1,1,1,0"}, lower first);
++#                    bliss | atlas | tcm | parbs | saa (see btp-sst/btpmem/btpSched.cc for settings)
++#   pool-arb-level   where host priority acts: both (default) | admit | bank
++#   pool-arb-params  scheduler settings, a dict (or JSON string); each key is passed as arb.<key>
++pool_arb = jobs["0"]["metadata"].get("pool-arb", "") or ""
++if pool_arb:
++    if backend != "btpmem.timingDRAM":
++        raise SystemExit("pool-arb needs a btpmem pool-sched (frfcfs, fcfs-open, fcfs-copy), not '%s'" % pool_sched)
++    pool_arb_level = jobs["0"]["metadata"].get("pool-arb-level", "both") or "both"
++    pool_arb_params = jobs["0"]["metadata"].get("pool-arb-params", {}) or {}
++    if isinstance(pool_arb_params, str):
++        pool_arb_params = json.loads(pool_arb_params)
++    arb = {"arb": 1, "arb.scheduler": pool_arb, "arb.level": pool_arb_level,
++           "arb.num_hosts": system_nodes, "arb.host_shift": 30}
++    for k, v in pool_arb_params.items():
++        arb["arb." + k] = v
++    memory.addParams(arb)
++print("pool front end:", ("per-host, " + pool_arb + ", level " + pool_arb_level) if pool_arb else "stock")
+ 
+ # Add all the Gem5 nodes to this list.
+ gem5_nodes = []
+@@ -264,7 +320,8 @@ for node in range(system_nodes):
+     cmd = [
+         # "-re",
+         "--outdir=" + os.path.join(output_directory,
+-                        jobs[job]["metadata"]["experiment"]) + "_" + str(node),
++                        jobs[job]["metadata"]["experiment"]) + "_" + str(node)] + \
++        jobs[job]["metadata"].get("gem5-opts", "").split() + [  # BTP: optional gem5 options, e.g. --debug-start
+         p_config]
+     
+     # Check if a TICK or MAXINST exists in the config file.
+@@ -310,6 +367,14 @@ for node in range(system_nodes):
+         "--l2-size=" + jobs[job]["cache"]["l2-size"],
+         "--l3-size=" + jobs[job]["cache"]["l3-size"],
+         "--l3-assoc=" + jobs[job]["cache"]["l3-assoc"],
++    ] + [
++        # Optional: misses in flight per cache; gem5 defaults apply if absent
++        f"--{k}={jobs[job]['cache'][k]}"
++        for k in ("l1d-mshrs", "l2-mshrs", "l3-mshrs",
++                  "l2-write-buffers", "l3-write-buffers",
++                  "l3-prefetcher")
++        if k in jobs[job]["cache"]
++    ] + [
+         "--local-memory-type=" + jobs[job]["local-memory"]
+                             ["type"],
+         "--local-memory-size=" + jobs[job]["local-memory"]
+@@ -328,7 +393,11 @@ for node in range(system_nodes):
+         "--bootloader-path=" + jobs[job]["workitem"]["bootloader"],
+         "--systemd=" + args.systemd
+         
+-    ]
++    ] + (
++        # BTP: optional periodic stats dumps, set once in host 0's metadata
++        ["--stats-period-ms=" + jobs["0"]["metadata"]["stats-period-ms"]]
++        if jobs["0"]["metadata"].get("stats-period-ms", "") != "" else []
++    )
+     # The user can add more parameters here
+ 
+     cmd = cmd + rest_of_cmd
+@@ -342,7 +411,8 @@ for node in range(system_nodes):
+     cpu_params = {
+        "frequency" : cpu_clock_rate,
+        "cmd" : " ".join(cmd),
+-       "debug_flags" : "",
++       # BTP: optional gem5 debug flags per host (metadata "debug-flags"), printed to the run log
++       "debug_flags" : jobs[job]["metadata"].get("debug-flags", ""),
+        "ports" : " ".join(port_list),
+        "max_ticks" : args.max_ticks
+     }
+diff --git a/ext/sst/sst_responder_subcomponent.cc b/ext/sst/sst_responder_subcomponent.cc
+index 8bb1c06b77..0c0666367a 100644
+--- a/ext/sst/sst_responder_subcomponent.cc
++++ b/ext/sst/sst_responder_subcomponent.cc
+@@ -259,19 +259,23 @@ SSTResponderSubComponent::portEventHandler(
+             responseQueue.push(pkt);
+         }
+     } else {
+-        // we can handle a few types of requests.
++        // we can handle a few types of requests. Nothing waits for these
++        // (e.g. the WriteResp for a write-back), so just free them.
+         if (SST::Interfaces::StandardMem::Read* test =
+                 dynamic_cast<SST::Interfaces::StandardMem::Read*>(request)) {
++            delete request;
+             return;
+         }
+         else if (SST::Interfaces::StandardMem::ReadResp* test =
+                 dynamic_cast<SST::Interfaces::StandardMem::ReadResp*>(
+                 request)) {
++            delete request;
+             return;
+         }
+         else if (SST::Interfaces::StandardMem::WriteResp* test =
+                 dynamic_cast<SST::Interfaces::StandardMem::WriteResp*>(
+                 request)) {
++            delete request;
+             return;
+         }
+         // for Snoop/no response needed
+diff --git a/src/arch/x86/kvm/x86_cpu.cc b/src/arch/x86/kvm/x86_cpu.cc
+index a863ed79a2..2ba6bfc093 100644
+--- a/src/arch/x86/kvm/x86_cpu.cc
++++ b/src/arch/x86/kvm/x86_cpu.cc
+@@ -818,6 +818,10 @@ X86KvmCPU::updateKvmStateSRegs()
+ #undef APPLY_SEGMENT
+ #undef APPLY_DTABLE
+ 
++    // The BSP bit of APICBASE is only filled in by readMiscReg; Linux 6.9+
++    // limits itself to one CPU if the boot CPU does not have it set.
++    sregs.apic_base = tc->readMiscReg(misc_reg::ApicBase);
++
+     // Clear the interrupt bitmap
+     memset(&sregs.interrupt_bitmap, 0, sizeof(sregs.interrupt_bitmap));
+ 
+diff --git a/src/dev/mc146818.cc b/src/dev/mc146818.cc
+index 2bfe877b95..166395318d 100644
+--- a/src/dev/mc146818.cc
++++ b/src/dev/mc146818.cc
+@@ -277,9 +277,15 @@ MC146818::serialize(const std::string &base, CheckpointOut &cp) const
+     // save the timer tick and rtc clock tick values to correctly reschedule
+     // them during unserialize
+     //
+-    Tick rtcTimerInterruptTickOffset = event.when() - curTick();
++    // Tick rtcTimerInterruptTickOffset = event.when() - curTick();
++    // SERIALIZE_SCALAR(rtcTimerInterruptTickOffset);
++    // Tick rtcClockTickOffset = tickEvent.when() - curTick();
++    // SERIALIZE_SCALAR(rtcClockTickOffset);
++    Tick rtcTimerInterruptTickOffset =
++        (event.when() > curTick()) ? (event.when() - curTick()) : 1;
+     SERIALIZE_SCALAR(rtcTimerInterruptTickOffset);
+-    Tick rtcClockTickOffset = tickEvent.when() - curTick();
++    Tick rtcClockTickOffset =
++        (tickEvent.when() > curTick()) ? (tickEvent.when() - curTick()) : 1;
+     SERIALIZE_SCALAR(rtcClockTickOffset);
+ }
+ 
+diff --git a/src/sst/external_memory.cc b/src/sst/external_memory.cc
+index 937de5f12f..4ecafbc774 100644
+--- a/src/sst/external_memory.cc
++++ b/src/sst/external_memory.cc
+@@ -116,13 +116,34 @@ ExternalMemory::sendTimingResp(gem5::PacketPtr pkt)
+     // increment the stats counters.
+     bool return_status = outgoingPort.sendTimingResp(pkt);
+     if (return_status) {
+-        // This packet got a response! Add the latency to the stats.
+-        stats.packetLatency.sample(
+-                gem5::curTick() - outstanding_requests[pkt]);
++        // This packet got a response! Add the latency to the stats (overall
++        // and for the request's category) and delete its entry.
++        auto it = outstanding_requests.find(pkt);
++        if (it != outstanding_requests.end()) {
++            const gem5::Tick lat = gem5::curTick() - it->second.sent;
++            stats.packetLatency.sample(lat);
++            switch (it->second.cat) {
++              case ReqDemandRead: stats.latDemandRead.sample(lat); break;
++              case ReqDemandReadEx: stats.latDemandReadEx.sample(lat); break;
++              case ReqPrefetch: stats.latPrefetch.sample(lat); break;
++              case ReqPageWalk: stats.latPageWalk.sample(lat); break;
++              default: stats.latOther.sample(lat); break;
++            }
++            // Reads faster than this cannot have crossed the modelled CXL
++            // link; count them and log the first few for diagnosis.
++            if (lat < 100000) {
++                ++stats.numShortLatency;
++                if (shortLatencyLogged < 30) {
++                    ++shortLatencyLogged;
++                    warn("short-latency pool response: %d ps, addr %#x, "
++                         "cmd %s, category %d, requestor %d",
++                         lat, it->second.addr, it->second.cmd.toString().c_str(),
++                         it->second.cat, it->second.requestor);
++                }
++            }
++            outstanding_requests.erase(it);
++        }
+ 
+-        // delete this entry to save some memory.
+-        outstanding_requests.erase(pkt);
+-       
+         // Count this packet as an incoming packet.
+         ++stats.numIncomingPackets;
+ 
+@@ -254,8 +275,22 @@ bool ExternalMemory::handleTiming(PacketPtr pkt)
+         assert(false && "The external memory cannot handle this request!");
+     }
+ 
+-    // Keep the time when this packet was sent out to SST.
+-    outstanding_requests[pkt] = gem5::curTick();
++    // Keep the time when this packet was sent out to SST. Only packets that
++    // expect a response are tracked (writebacks are never answered by SST, and
++    // tracking them made this map grow without bound).
++    if (pkt->needsResponse()) {
++        uint8_t cat = ReqOther;
++        if (pkt->req->isPTWalk())
++            cat = ReqPageWalk;
++        else if (pkt->req->isPrefetch())
++            cat = ReqPrefetch;
++        else if (pkt->cmd == MemCmd::ReadExReq)
++            cat = ReqDemandReadEx;
++        else if (pkt->isRead())
++            cat = ReqDemandRead;
++        outstanding_requests[pkt] = {gem5::curTick(), cat, pkt->getAddr(),
++            pkt->cmd, pkt->req->requestorId()};
++    }
+ 
+     // Take samples of the size of this map
+     stats.outstandingPackets.sample(outstanding_requests.size());
+@@ -272,6 +307,12 @@ bool ExternalMemory::handleTiming(PacketPtr pkt)
+             pkt->writeData(host_addr);
+     }
+ 
++    // SST copied the data into its own request and will not answer a packet
++    // that needs no response, so nobody else frees it (this leaked every
++    // write-back sent to the pool).
++    if (!pkt->needsResponse())
++        pendingDelete.reset(pkt);
++
+ 
+     // This always returns true.
+     return true;
+@@ -312,15 +353,32 @@ ExternalMemory::StatGroup::StatGroup(statistics::Group *parent)
+     ADD_STAT(packetLatency, statistics::units::Count::get(),
+             "Histogram of packet latency sent via this port."),
+     ADD_STAT(outstandingPackets, statistics::units::Count::get(),
+-            "Histogram of outstanding packets.")
++            "Histogram of outstanding packets."),
++    ADD_STAT(latDemandRead, statistics::units::Count::get(),
++            "Latency of demand reads (ReadReq/ReadSharedReq/ReadCleanReq)"),
++    ADD_STAT(latDemandReadEx, statistics::units::Count::get(),
++            "Latency of demand reads for ownership (ReadExReq)"),
++    ADD_STAT(latPrefetch, statistics::units::Count::get(),
++            "Latency of hardware/software prefetch reads"),
++    ADD_STAT(latPageWalk, statistics::units::Count::get(),
++            "Latency of page-table-walk reads"),
++    ADD_STAT(latOther, statistics::units::Count::get(),
++            "Latency of other requests that expect a response"),
++    ADD_STAT(numShortLatency, statistics::units::Count::get(),
++            "Responses faster than 100 ns (cannot have crossed the link)")
+ {
+     using namespace statistics;
+     // Initialize any histogram stats here
++    // 5 ns buckets (ticks are ps) from 0 to 2 us, plus underflow/overflow
++    // counts; empty buckets are not printed.
+     packetLatency
+-        .init(2)
+-        .flags(pdf);
++        .init(0, 2000000, 5000)
++        .flags(pdf | nozero);
+     outstandingPackets
+-        .init(2)
+-        .flags(pdf);
++        .init(0, 255, 1)
++        .flags(pdf | nozero);
++    for (auto *d : {&latDemandRead, &latDemandReadEx, &latPrefetch,
++                    &latPageWalk, &latOther})
++        d->init(0, 2000000, 5000).flags(pdf | nozero);
+ }
+ }; // namespace gem5
+diff --git a/src/sst/external_memory.hh b/src/sst/external_memory.hh
+index 840395d9bb..bbed6fea20 100644
+--- a/src/sst/external_memory.hh
++++ b/src/sst/external_memory.hh
+@@ -27,6 +27,7 @@
+ #ifndef __SST_EXTERNAL_MEMORY_HH__
+ #define __SST_EXTERNAL_MEMORY_HH__
+ 
++#include <memory>
+ #include <utility>
+ #include <vector>
+ 
+@@ -84,7 +85,23 @@ class ExternalMemory : public memory::AbstractMemory
+     // functional accesses to timing accesses so that it is correctly read from
+     // the memory.
+     bool init_phase_bool;
+-    std::map<PacketPtr, gem5::Tick> outstanding_requests;
++    // Request categories for the per-type latency distributions
++    enum ReqCategory : uint8_t { ReqDemandRead, ReqDemandReadEx, ReqPrefetch,
++                                 ReqPageWalk, ReqOther };
++    struct OutstandingReq
++    {
++        gem5::Tick sent;
++        uint8_t cat;
++        Addr addr;
++        MemCmd cmd;
++        RequestorID requestor;
++    };
++    std::map<PacketPtr, OutstandingReq> outstanding_requests;
++    int shortLatencyLogged = 0;
++    // Packets that need no response (write-backs) are owned by this memory.
++    // Free each one on the next request, as gem5's own memories do, because
++    // the sender may still look at it after handleTiming() returns.
++    std::unique_ptr<Packet> pendingDelete;
+ 
+   public:
+     // we need a statistics counter for this simobject to find out how many
+@@ -116,11 +133,22 @@ class ExternalMemory : public memory::AbstractMemory
+         /** Count the number of incoming write packets */
+         statistics::Scalar numWriteIncomingPackets;
+ 
+-        /** Create a histogram of the latencies of packets sent via this port*/
+-        statistics::Histogram packetLatency;
++        /** Distribution of the latencies of packets sent via this port, in
++         *  fixed 5 ns buckets so that percentiles can be read */
++        statistics::Distribution packetLatency;
++
++        /** Distribution of the number of requests awaiting a response */
++        statistics::Distribution outstandingPackets;
++
++        /** Latency distributions per request category (same buckets) */
++        statistics::Distribution latDemandRead;
++        statistics::Distribution latDemandReadEx;
++        statistics::Distribution latPrefetch;
++        statistics::Distribution latPageWalk;
++        statistics::Distribution latOther;
+ 
+-        /** Create a histogram of the total outstanding packets */
+-        statistics::Histogram outstandingPackets;
++        /** Responses faster than 100 ns */
++        statistics::Scalar numShortLatency;
+     } stats;
+   public:
+     // a gem5 ResponsePort

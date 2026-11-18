@@ -1,0 +1,49 @@
+diff --git a/tests/cpp/sift_1b.cpp b/tests/cpp/sift_1b.cpp
+index 3ee3375..c6d335b 100644
+--- a/tests/cpp/sift_1b.cpp
++++ b/tests/cpp/sift_1b.cpp
+@@ -1,3 +1,4 @@
++#include "../../../roi.h"  // BTP: gem5 region-of-interest markers
+ #include <iostream>
+ #include <fstream>
+ #include <queue>
+@@ -220,10 +221,12 @@ test_vs_recall(
+     }
+     for (size_t ef : efs) {
+         appr_alg.setEf(ef);
++        roi_begin();  // BTP: one measured region per ef setting
+         StopW stopw = StopW();
+ 
+         float recall = test_approx(massQ, vecsize, qsize, appr_alg, vecdim, answers, k);
+         float time_us_per_query = stopw.getElapsedTimeMicro() / qsize;
++        roi_end();  // BTP
+ 
+         cout << ef << "\t" << recall << "\t" << time_us_per_query << " us\n";
+         if (recall > 1.0) {
+@@ -240,13 +243,13 @@ inline bool exists_test(const std::string &name) {
+ 
+ 
+ void sift_test1B() {
+-    int subset_size_milllions = 200;
++    int subset_size_milllions = 1;  // BTP: 1M-vector subset (fits the 1 GiB pool slot)
+     int efConstruction = 40;
+     int M = 16;
+ 
+     size_t vecsize = subset_size_milllions * 1000000;
+ 
+-    size_t qsize = 10000;
++    size_t qsize = BTP_QSIZE;  // BTP: queries per ef setting (set at build time)
+     size_t vecdim = 128;
+     char path_index[1024];
+     char path_gt[1024];
+@@ -358,8 +361,10 @@ void sift_test1B() {
+     cout << "Parsing gt:\n";
+     get_gt(massQA, massQ, mass, vecsize, qsize, l2space, vecdim, answers, k);
+     cout << "Loaded gt\n";
++    roi_checkpoint();  // BTP: end of setup (index, queries and ground truth loaded)
+     for (int i = 0; i < 1; i++)
+         test_vs_recall(massQ, vecsize, qsize, *appr_alg, vecdim, answers, k);
+     cout << "Actual memory usage: " << getCurrentRSS() / 1000000 << " Mb \n";
++    roi_finish();  // BTP: ends this host's simulation
+     return;
+ }

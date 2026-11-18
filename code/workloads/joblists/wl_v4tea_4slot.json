@@ -1,0 +1,218 @@
+{
+  "0": {
+    "metadata": {
+      "comment": "v4tea: SPEC CPU2026 811.tealeaf_s, train input, 4 OpenMP threads; checkpoint 20 s into the run, slot 0",
+      "experiment": "btp",
+      "checkpoint": "",
+      "maxinsts": "",
+      "parallel-eff": "false",
+      "pool-channels": "1"
+    },
+    "cpu": {
+      "ff-core": "atomic",
+      "roi-core": "timing",
+      "isa": "x86",
+      "count": "4"
+    },
+    "cache": {
+      "type": "l1l2l3",
+      "l1i-size": "32KiB",
+      "l1d-size": "32KiB",
+      "l2-size": "512KiB",
+      "l3-size": "8MiB",
+      "l3-assoc": "16",
+      "l1d-mshrs": "16",
+      "l2-mshrs": "48",
+      "l3-mshrs": "192",
+      "l2-write-buffers": "32",
+      "l3-write-buffers": "64"
+    },
+    "local-memory": {
+      "type": "ddr4",
+      "size": "1GiB"
+    },
+    "remote-memory": {
+      "size": "",
+      "shared": "false",
+      "latency": "250ns",
+      "start": "0x100000000",
+      "end": "0x140000000"
+    },
+    "workitem": {
+      "cmd": [
+        "numastat;",
+        "cd /home/gem5/btp-workloads/tealeaf;",
+        "OMP_NUM_THREADS=4 OMP_STACKSIZE=120M numactl --membind=1 -- ./tealeaf > /tmp/tea.txt &",
+        "sleep 20;",
+        "m5 exit;",
+        "wait;",
+        "numastat;"
+      ],
+      "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v4",
+      "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+      "bootloader": ""
+    }
+  },
+  "1": {
+    "metadata": {
+      "comment": "v4tea: SPEC CPU2026 811.tealeaf_s, train input, 4 OpenMP threads; checkpoint 20 s into the run, slot 1",
+      "experiment": "btp",
+      "checkpoint": "",
+      "maxinsts": "",
+      "parallel-eff": "false",
+      "pool-channels": "1"
+    },
+    "cpu": {
+      "ff-core": "atomic",
+      "roi-core": "timing",
+      "isa": "x86",
+      "count": "4"
+    },
+    "cache": {
+      "type": "l1l2l3",
+      "l1i-size": "32KiB",
+      "l1d-size": "32KiB",
+      "l2-size": "512KiB",
+      "l3-size": "8MiB",
+      "l3-assoc": "16",
+      "l1d-mshrs": "16",
+      "l2-mshrs": "48",
+      "l3-mshrs": "192",
+      "l2-write-buffers": "32",
+      "l3-write-buffers": "64"
+    },
+    "local-memory": {
+      "type": "ddr4",
+      "size": "1GiB"
+    },
+    "remote-memory": {
+      "size": "",
+      "shared": "false",
+      "latency": "250ns",
+      "start": "0x140000000",
+      "end": "0x180000000"
+    },
+    "workitem": {
+      "cmd": [
+        "numastat;",
+        "cd /home/gem5/btp-workloads/tealeaf;",
+        "OMP_NUM_THREADS=4 OMP_STACKSIZE=120M numactl --membind=1 -- ./tealeaf > /tmp/tea.txt &",
+        "sleep 20;",
+        "m5 exit;",
+        "wait;",
+        "numastat;"
+      ],
+      "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v4",
+      "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+      "bootloader": ""
+    }
+  },
+  "2": {
+    "metadata": {
+      "comment": "v4tea: SPEC CPU2026 811.tealeaf_s, train input, 4 OpenMP threads; checkpoint 20 s into the run, slot 2",
+      "experiment": "btp",
+      "checkpoint": "",
+      "maxinsts": "",
+      "parallel-eff": "false",
+      "pool-channels": "1"
+    },
+    "cpu": {
+      "ff-core": "atomic",
+      "roi-core": "timing",
+      "isa": "x86",
+      "count": "4"
+    },
+    "cache": {
+      "type": "l1l2l3",
+      "l1i-size": "32KiB",
+      "l1d-size": "32KiB",
+      "l2-size": "512KiB",
+      "l3-size": "8MiB",
+      "l3-assoc": "16",
+      "l1d-mshrs": "16",
+      "l2-mshrs": "48",
+      "l3-mshrs": "192",
+      "l2-write-buffers": "32",
+      "l3-write-buffers": "64"
+    },
+    "local-memory": {
+      "type": "ddr4",
+      "size": "1GiB"
+    },
+    "remote-memory": {
+      "size": "",
+      "shared": "false",
+      "latency": "250ns",
+      "start": "0x180000000",
+      "end": "0x1c0000000"
+    },
+    "workitem": {
+      "cmd": [
+        "numastat;",
+        "cd /home/gem5/btp-workloads/tealeaf;",
+        "OMP_NUM_THREADS=4 OMP_STACKSIZE=120M numactl --membind=1 -- ./tealeaf > /tmp/tea.txt &",
+        "sleep 20;",
+        "m5 exit;",
+        "wait;",
+        "numastat;"
+      ],
+      "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v4",
+      "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+      "bootloader": ""
+    }
+  },
+  "3": {
+    "metadata": {
+      "comment": "v4tea: SPEC CPU2026 811.tealeaf_s, train input, 4 OpenMP threads; checkpoint 20 s into the run, slot 3",
+      "experiment": "btp",
+      "checkpoint": "",
+      "maxinsts": "",
+      "parallel-eff": "false",
+      "pool-channels": "1"
+    },
+    "cpu": {
+      "ff-core": "atomic",
+      "roi-core": "timing",
+      "isa": "x86",
+      "count": "4"
+    },
+    "cache": {
+      "type": "l1l2l3",
+      "l1i-size": "32KiB",
+      "l1d-size": "32KiB",
+      "l2-size": "512KiB",
+      "l3-size": "8MiB",
+      "l3-assoc": "16",
+      "l1d-mshrs": "16",
+      "l2-mshrs": "48",
+      "l3-mshrs": "192",
+      "l2-write-buffers": "32",
+      "l3-write-buffers": "64"
+    },
+    "local-memory": {
+      "type": "ddr4",
+      "size": "1GiB"
+    },
+    "remote-memory": {
+      "size": "",
+      "shared": "false",
+      "latency": "250ns",
+      "start": "0x1c0000000",
+      "end": "0x200000000"
+    },
+    "workitem": {
+      "cmd": [
+        "numastat;",
+        "cd /home/gem5/btp-workloads/tealeaf;",
+        "OMP_NUM_THREADS=4 OMP_STACKSIZE=120M numactl --membind=1 -- ./tealeaf > /tmp/tea.txt &",
+        "sleep 20;",
+        "m5 exit;",
+        "wait;",
+        "numastat;"
+      ],
+      "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v4",
+      "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+      "bootloader": ""
+    }
+  }
+}

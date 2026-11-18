@@ -1,0 +1,40 @@
+diff --git a/tools/llama-bench/llama-bench.cpp b/tools/llama-bench/llama-bench.cpp
+index 96ae487..2007853 100644
+--- a/tools/llama-bench/llama-bench.cpp
++++ b/tools/llama-bench/llama-bench.cpp
+@@ -1,3 +1,4 @@
++#include "../../../roi.h"  // BTP: gem5 region-of-interest markers
+ #include <algorithm>
+ #include <array>
+ #include <cassert>
+@@ -2441,6 +2442,7 @@ int llama_bench(int argc, char ** argv) {
+             }
+         }
+ 
++        roi_checkpoint();  // BTP: end of setup (model loaded, warmup done)
+         for (int i = 0; i < params.reps; i++) {
+             llama_memory_clear(llama_get_memory(ctx), false);
+ 
+@@ -2481,6 +2483,7 @@ int llama_bench(int argc, char ** argv) {
+                 }
+             }
+ 
++            roi_begin();  // BTP: one measured region per repetition
+             uint64_t t_start = get_time_ns();
+ 
+             if (t.n_prompt > 0) {
+@@ -2511,6 +2514,7 @@ int llama_bench(int argc, char ** argv) {
+             }
+ 
+             uint64_t t_ns = get_time_ns() - t_start;
++            roi_end();  // BTP
+             t.samples_ns.push_back(t_ns);
+         }
+ 
+@@ -2543,5 +2547,6 @@ int llama_bench(int argc, char ** argv) {
+ 
+     llama_backend_free();
+ 
++    roi_finish();  // BTP: ends this host's simulation
+     return 0;
+ }

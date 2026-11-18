@@ -1,0 +1,15 @@
+diff --git a/src/arch/x86/kvm/x86_cpu.cc b/src/arch/x86/kvm/x86_cpu.cc
+index a863ed79a2..2ba6bfc093 100644
+--- a/src/arch/x86/kvm/x86_cpu.cc
++++ b/src/arch/x86/kvm/x86_cpu.cc
+@@ -818,6 +818,10 @@ X86KvmCPU::updateKvmStateSRegs()
+ #undef APPLY_SEGMENT
+ #undef APPLY_DTABLE
+ 
++    // The BSP bit of APICBASE is only filled in by readMiscReg; Linux 6.9+
++    // limits itself to one CPU if the boot CPU does not have it set.
++    sregs.apic_base = tc->readMiscReg(misc_reg::ApicBase);
++
+     // Clear the interrupt bitmap
+     memset(&sregs.interrupt_bitmap, 0, sizeof(sregs.interrupt_bitmap));
+ 

@@ -1,0 +1,26 @@
+diff --git a/disaggregated_memory/boards/x86_main_board.py b/disaggregated_memory/boards/x86_main_board.py
+index b8c446abe6..c23939245f 100644
+--- a/disaggregated_memory/boards/x86_main_board.py
++++ b/disaggregated_memory/boards/x86_main_board.py
+@@ -437,6 +437,10 @@ class X86ComposableMemoryBoard(X86Board):
+                 bootstrap=(i == 0),
+             )
+             base_entries.append(bp)
++            # Linux reads the CPU list from the ACPI MADT, so every core needs
++            # a LAPIC entry there too (otherwise only the boot CPU comes up).
++            lapic = X86ACPIMadtLAPIC(acpi_processor_id=i, apic_id=i, flags=1)
++            madt_entries.append(lapic)
+ 
+         io_apic = X86IntelMPIOAPIC(
+             id=self.get_processor().get_num_cores(),
+@@ -662,6 +666,10 @@ class X86ComposableMemoryBoard(X86Board):
+             "console=ttyS0",
+             "lpj=7999923",
+             "root=/dev/sda2",
++            # gem5's timing CPUs mishandle MWAIT in the idle loop (an idle
++            # second core page-faults and panics), so idle with HLT instead.
++            # BTP_GUEST_IDLE=poll overrides it at boot (checkpoint) time.
++            "idle=" + os.environ.get("BTP_GUEST_IDLE", "halt"),
+         ]
+ 
+ 

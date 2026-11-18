@@ -1,0 +1,27 @@
+diff --git a/ext/sst/gem5.cc b/ext/sst/gem5.cc
+index 9346549a72..d4ebc6b481 100644
+--- a/ext/sst/gem5.cc
++++ b/ext/sst/gem5.cc
+@@ -295,6 +295,22 @@ gem5Component::clockTick(SST::Cycle_t currentCycle)
+     // what to do in a SST's cycle
+     gem5::GlobalSimLoopExitEvent *event = simulateGem5(currentCycle);
+     clocksProcessed++;
++    // BTP: honour max_ticks (in this component's clock cycles since the
++    // start/restore) on every tick, not only when gem5 raises an exit event,
++    // so a run can stop after a fixed window in the middle of a workload.
++    if (str_max_ticks != "" && !did_gem5_end &&
++        currentCycle >= gem5_max_ticks) {
++        output.output("exiting: max_ticks reached at cycle %lu, curTick()=%lu\n",
++            currentCycle, gem5::curTick());
++        const std::vector<std::string> output_stats_commands = {
++            "import m5.stats",
++            "m5.stats.dump()",
++        };
++        execPythonCommands(output_stats_commands);
++        did_gem5_end = true;
++        primaryComponentOKToEndSim();
++        return true;
++    }
+     // gem5 exits due to reasons other than reaching simulation limit
+     if (event != gem5::simulate_limit_event) {
+         bool return_value = false;

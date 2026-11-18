@@ -1,0 +1,18 @@
+diff --git a/disaggregated_memory/unified_run.py b/disaggregated_memory/unified_run.py
+index 3c11dc38bd..6145b21393 100644
+--- a/disaggregated_memory/unified_run.py
++++ b/disaggregated_memory/unified_run.py
+@@ -867,9 +867,10 @@ until_when = "0"
+ # This must be in the metadata of the simulation. We need to simulate all the
+ # systems until that point to have an accurate simulation stats!
+ try:
+-    if jobs[0]["metadata"]["max-ticks"] != "":
+-        # There is a value! Must be in unit time (i.e. s)
+-        until_when = jobs[0]["metadata"]["max-ticks"]
++    # BTP: joblist keys are strings ("0", "1", ...), so jobs[0] never matched.
++    # The value is in gem5-component clock cycles since the start/restore.
++    if jobs["0"]["metadata"]["max-ticks"] != "":
++        until_when = jobs["0"]["metadata"]["max-ticks"]
+ except KeyError:
+     print("There is no max time set!")
+     # There is no max-time. It's okay, we can live with it.

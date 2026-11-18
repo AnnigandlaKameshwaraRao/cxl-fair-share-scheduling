@@ -1,0 +1,39 @@
+--- gups.cpp.orig	2026-10-20 12:08:58.917448678 +0530
++++ gups.cpp	2026-10-20 12:08:58.942555470 +0530
+@@ -3,9 +3,7 @@
+ #include <numeric>
+ #include <chrono>
+ 
+-#ifdef GEM5_ANNOTATION
+-#include <gem5/m5ops.h>
+-#endif
++#include "../roi.h"  // BTP: our standard gem5 marker protocol replaces the m5ops calls
+ 
+ 
+ typedef uint64_t TElement;
+@@ -31,21 +29,19 @@
+ 
+     TIndex numUpdates = numTableElements*4;
+ 
+-#ifdef GEM5_ANNOTATION
+-    m5_work_begin(0,0);
+-#endif
++    roi_checkpoint();  // BTP: end of setup (table initialised)
++    roi_begin();  // BTP
+     const auto t_start = std::chrono::steady_clock::now();
+     doRandomAccess(table.data(), numTableElements, numUpdates, numUpdatesPerBurst);
+     const auto t_end = std::chrono::steady_clock::now();
+-#ifdef GEM5_ANNOTATION
+-    m5_work_end(0,0);
+-#endif
++    roi_end();  // BTP
+     std::chrono::duration<double> delta_t = t_end - t_start;
+ 
+     size_t numThreads = get_num_omp_threads();
+ 
+     report(numThreads, numTableElements, numUpdates, delta_t.count());
+ 
++    roi_finish();  // BTP: ends this host's simulation
+     return 0;
+ }
+ 

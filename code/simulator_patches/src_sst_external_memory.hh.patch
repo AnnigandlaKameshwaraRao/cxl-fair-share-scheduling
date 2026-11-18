@@ -1,0 +1,64 @@
+diff --git a/src/sst/external_memory.hh b/src/sst/external_memory.hh
+index 840395d9bb..bbed6fea20 100644
+--- a/src/sst/external_memory.hh
++++ b/src/sst/external_memory.hh
+@@ -27,6 +27,7 @@
+ #ifndef __SST_EXTERNAL_MEMORY_HH__
+ #define __SST_EXTERNAL_MEMORY_HH__
+ 
++#include <memory>
+ #include <utility>
+ #include <vector>
+ 
+@@ -84,7 +85,23 @@ class ExternalMemory : public memory::AbstractMemory
+     // functional accesses to timing accesses so that it is correctly read from
+     // the memory.
+     bool init_phase_bool;
+-    std::map<PacketPtr, gem5::Tick> outstanding_requests;
++    // Request categories for the per-type latency distributions
++    enum ReqCategory : uint8_t { ReqDemandRead, ReqDemandReadEx, ReqPrefetch,
++                                 ReqPageWalk, ReqOther };
++    struct OutstandingReq
++    {
++        gem5::Tick sent;
++        uint8_t cat;
++        Addr addr;
++        MemCmd cmd;
++        RequestorID requestor;
++    };
++    std::map<PacketPtr, OutstandingReq> outstanding_requests;
++    int shortLatencyLogged = 0;
++    // Packets that need no response (write-backs) are owned by this memory.
++    // Free each one on the next request, as gem5's own memories do, because
++    // the sender may still look at it after handleTiming() returns.
++    std::unique_ptr<Packet> pendingDelete;
+ 
+   public:
+     // we need a statistics counter for this simobject to find out how many
+@@ -116,11 +133,22 @@ class ExternalMemory : public memory::AbstractMemory
+         /** Count the number of incoming write packets */
+         statistics::Scalar numWriteIncomingPackets;
+ 
+-        /** Create a histogram of the latencies of packets sent via this port*/
+-        statistics::Histogram packetLatency;
++        /** Distribution of the latencies of packets sent via this port, in
++         *  fixed 5 ns buckets so that percentiles can be read */
++        statistics::Distribution packetLatency;
++
++        /** Distribution of the number of requests awaiting a response */
++        statistics::Distribution outstandingPackets;
++
++        /** Latency distributions per request category (same buckets) */
++        statistics::Distribution latDemandRead;
++        statistics::Distribution latDemandReadEx;
++        statistics::Distribution latPrefetch;
++        statistics::Distribution latPageWalk;
++        statistics::Distribution latOther;
+ 
+-        /** Create a histogram of the total outstanding packets */
+-        statistics::Histogram outstandingPackets;
++        /** Responses faster than 100 ns */
++        statistics::Scalar numShortLatency;
+     } stats;
+   public:
+     // a gem5 ResponsePort

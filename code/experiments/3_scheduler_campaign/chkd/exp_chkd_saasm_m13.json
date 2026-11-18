@@ -1,0 +1,233 @@
+{
+  "0": {
+    "metadata": {
+      "comment": "chkd_saasm_m13: SAA bandwidth estimate, smoothing 0.75, from o3b_frfcfs_m13, 11 ms window",
+      "experiment": "btp",
+      "checkpoint": "",
+      "maxinsts": "",
+      "parallel-eff": "false",
+      "pool-channels": "1",
+      "max-ticks": "33000000",
+      "stats-period-ms": "10",
+      "pool-sched": "frfcfs",
+      "pool-row-size": "8KiB",
+      "pool-arb": "saa",
+      "pool-arb-params": {
+        "smooth": 0.75
+      }
+    },
+    "cpu": {
+      "ff-core": "atomic",
+      "roi-core": "o3",
+      "isa": "x86",
+      "count": "4"
+    },
+    "cache": {
+      "type": "l1l2l3",
+      "l1i-size": "32KiB",
+      "l1d-size": "32KiB",
+      "l2-size": "512KiB",
+      "l3-size": "8MiB",
+      "l3-assoc": "16",
+      "l1d-mshrs": "16",
+      "l2-mshrs": "48",
+      "l3-mshrs": "192",
+      "l2-write-buffers": "32",
+      "l3-write-buffers": "64"
+    },
+    "local-memory": {
+      "type": "ddr4",
+      "size": "1GiB"
+    },
+    "remote-memory": {
+      "size": "",
+      "shared": "false",
+      "latency": "250ns",
+      "start": "0x100000000",
+      "end": "0x140000000"
+    },
+    "workitem": {
+      "cmd": [
+        "numastat;",
+        "cd /home/gem5/btp-workloads/tealeaf;",
+        "OMP_NUM_THREADS=4 OMP_STACKSIZE=120M numactl --membind=1 -- ./tealeaf > /tmp/tea.txt &",
+        "sleep 20;",
+        "m5 exit;",
+        "wait;",
+        "numastat;"
+      ],
+      "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v4",
+      "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+      "bootloader": ""
+    }
+  },
+  "1": {
+    "metadata": {
+      "comment": "chkd_saasm_m13: SAA bandwidth estimate, smoothing 0.75, from o3b_frfcfs_m13, 11 ms window",
+      "experiment": "btp",
+      "checkpoint": "",
+      "maxinsts": "",
+      "parallel-eff": "false",
+      "pool-channels": "1",
+      "max-ticks": "33000000",
+      "pool-arb": "saa",
+      "pool-arb-params": {
+        "smooth": 0.75
+      }
+    },
+    "cpu": {
+      "ff-core": "atomic",
+      "roi-core": "o3",
+      "isa": "x86",
+      "count": "4"
+    },
+    "cache": {
+      "type": "l1l2l3",
+      "l1i-size": "32KiB",
+      "l1d-size": "32KiB",
+      "l2-size": "512KiB",
+      "l3-size": "8MiB",
+      "l3-assoc": "16",
+      "l1d-mshrs": "16",
+      "l2-mshrs": "48",
+      "l3-mshrs": "192",
+      "l2-write-buffers": "32",
+      "l3-write-buffers": "64"
+    },
+    "local-memory": {
+      "type": "ddr4",
+      "size": "1GiB"
+    },
+    "remote-memory": {
+      "size": "",
+      "shared": "false",
+      "latency": "250ns",
+      "start": "0x140000000",
+      "end": "0x180000000"
+    },
+    "workitem": {
+      "cmd": [
+        "numastat;",
+        "OMP_NUM_THREADS=4 numactl --membind=1 -- /home/gem5/simple-vectorizable-microbenchmarks/stream-syscalls/stream.hw.m5 25165824;",
+        "numastat;"
+      ],
+      "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v2",
+      "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+      "bootloader": ""
+    }
+  },
+  "2": {
+    "metadata": {
+      "comment": "chkd_saasm_m13: SAA bandwidth estimate, smoothing 0.75, from o3b_frfcfs_m13, 11 ms window",
+      "experiment": "btp",
+      "checkpoint": "",
+      "maxinsts": "",
+      "parallel-eff": "false",
+      "pool-channels": "1",
+      "max-ticks": "33000000",
+      "pool-arb": "saa",
+      "pool-arb-params": {
+        "smooth": 0.75
+      }
+    },
+    "cpu": {
+      "ff-core": "atomic",
+      "roi-core": "o3",
+      "isa": "x86",
+      "count": "4"
+    },
+    "cache": {
+      "type": "l1l2l3",
+      "l1i-size": "32KiB",
+      "l1d-size": "32KiB",
+      "l2-size": "512KiB",
+      "l3-size": "8MiB",
+      "l3-assoc": "16",
+      "l1d-mshrs": "16",
+      "l2-mshrs": "48",
+      "l3-mshrs": "192",
+      "l2-write-buffers": "32",
+      "l3-write-buffers": "64"
+    },
+    "local-memory": {
+      "type": "ddr4",
+      "size": "1GiB"
+    },
+    "remote-memory": {
+      "size": "",
+      "shared": "false",
+      "latency": "250ns",
+      "start": "0x180000000",
+      "end": "0x1c0000000"
+    },
+    "workitem": {
+      "cmd": [
+        "numastat;",
+        "cd /home/gem5/btp-workloads/fotonik3d;",
+        "OMP_NUM_THREADS=4 OMP_STACKSIZE=120M numactl --membind=1 -- ./fotonik3d > /tmp/foton.txt &",
+        "sleep 12;",
+        "m5 exit;",
+        "wait;",
+        "numastat;"
+      ],
+      "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v5",
+      "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+      "bootloader": ""
+    }
+  },
+  "3": {
+    "metadata": {
+      "comment": "chkd_saasm_m13: SAA bandwidth estimate, smoothing 0.75, from o3b_frfcfs_m13, 11 ms window",
+      "experiment": "btp",
+      "checkpoint": "",
+      "maxinsts": "",
+      "parallel-eff": "false",
+      "pool-channels": "1",
+      "max-ticks": "33000000",
+      "pool-arb": "saa",
+      "pool-arb-params": {
+        "smooth": 0.75
+      }
+    },
+    "cpu": {
+      "ff-core": "atomic",
+      "roi-core": "o3",
+      "isa": "x86",
+      "count": "4"
+    },
+    "cache": {
+      "type": "l1l2l3",
+      "l1i-size": "32KiB",
+      "l1d-size": "32KiB",
+      "l2-size": "512KiB",
+      "l3-size": "8MiB",
+      "l3-assoc": "16",
+      "l1d-mshrs": "16",
+      "l2-mshrs": "48",
+      "l3-mshrs": "192",
+      "l2-write-buffers": "32",
+      "l3-write-buffers": "64"
+    },
+    "local-memory": {
+      "type": "ddr4",
+      "size": "1GiB"
+    },
+    "remote-memory": {
+      "size": "",
+      "shared": "false",
+      "latency": "250ns",
+      "start": "0x1c0000000",
+      "end": "0x200000000"
+    },
+    "workitem": {
+      "cmd": [
+        "numastat;",
+        "numactl --membind=1 -- /home/gem5/btp-workloads/streamcluster.m5 10 20 128 1000000 200000 5000 none /tmp/sc_out.txt 4;",
+        "numastat;"
+      ],
+      "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v3",
+      "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+      "bootloader": ""
+    }
+  }
+}

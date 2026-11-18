@@ -1,0 +1,58 @@
+{
+  "0": {
+    "metadata": {
+      "comment": "p1s_v5marian_s3: v5marian alone from checkpoint slot 3 (Phase 1 - Mixed baseline) | 1 channel, 400 ms window (max-ticks in 3 GHz cycles), stats every 10 ms",
+      "experiment": "btp",
+      "checkpoint": "",
+      "maxinsts": "",
+      "parallel-eff": "false",
+      "pool-channels": "1",
+      "max-ticks": "1200000000",
+      "stats-period-ms": "10"
+    },
+    "cpu": {
+      "ff-core": "atomic",
+      "roi-core": "timing",
+      "isa": "x86",
+      "count": "4"
+    },
+    "cache": {
+      "type": "l1l2l3",
+      "l1i-size": "32KiB",
+      "l1d-size": "32KiB",
+      "l2-size": "512KiB",
+      "l3-size": "8MiB",
+      "l3-assoc": "16",
+      "l1d-mshrs": "16",
+      "l2-mshrs": "48",
+      "l3-mshrs": "192",
+      "l2-write-buffers": "32",
+      "l3-write-buffers": "64"
+    },
+    "local-memory": {
+      "type": "ddr4",
+      "size": "1GiB"
+    },
+    "remote-memory": {
+      "size": "",
+      "shared": "false",
+      "latency": "250ns",
+      "start": "0x1c0000000",
+      "end": "0x200000000"
+    },
+    "workitem": {
+      "cmd": [
+        "numastat;",
+        "cd /home/gem5/btp-workloads/marian;",
+        "numactl --membind=1 -- ./marian-decoder --cpu-threads 1 -m model.alphas.npz -v vocab.spm vocab.spm --beam-size 2 --mini-batch 32 --maxi-batch 100 --maxi-batch-sort src -w 64 --skip-cost --gemm-type intgemm8 --intgemm-options precomputed-alpha standard-only --quiet --quiet-translation -i technology_and_courage.en --log-level off -o /tmp/marian.out > /tmp/marian.txt 2>&1 &",
+        "sleep 15;",
+        "m5 exit;",
+        "wait;",
+        "numastat;"
+      ],
+      "disk": "~/BTP/cxl-clustersim/gem5-resources/src/stream/x86-disk-image-24-04/x86-ubuntu-v5",
+      "kernel": "~/BTP/linux-kernel-build/linux/vmlinux",
+      "bootloader": ""
+    }
+  }
+}

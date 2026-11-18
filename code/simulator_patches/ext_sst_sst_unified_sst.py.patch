@@ -1,0 +1,133 @@
+diff --git a/ext/sst/sst/unified_sst.py b/ext/sst/sst/unified_sst.py
+index 9c8bc17719..6d0339369e 100644
+--- a/ext/sst/sst/unified_sst.py
++++ b/ext/sst/sst/unified_sst.py
+@@ -206,8 +206,35 @@ memctrl.addParams({
+         util_int_to_size(total_sst_memory)).getRoundedValue(),
+ })
+ 
+-# We need a DDR4-like memory device. This is hardcoded.
+-memory = memctrl.setSubComponent( "backend", "memHierarchy.timingDRAM")
++# We need a DDR4-like memory device. The channel count (pool bandwidth) can be
++# set per run with "pool-channels" in host 0's metadata; default 4.
++pool_channels = int(jobs["0"]["metadata"].get("pool-channels", "4") or "4")
++print("pool channels:", pool_channels)
++# BTP: per-bank DRAM scheduling of the pool channel, set per run with "pool-sched"
++# in host 0's metadata (needs libbtpmem.so in ext/sst for anything but "fcfs"):
++#   fcfs      stock memHierarchy.timingDRAM: FIFO bank queues, closed page (Phase 1)
++#   frfcfs    btpmem.timingDRAM, lazy pop, FR-FCFS bank queues, open page
++#   fcfs-open btpmem.timingDRAM, lazy pop, FIFO bank queues, open page
++#   fcfs-copy btpmem.timingDRAM in stock mode (eager pop, FIFO, closed page), for
++#             checking the copy against stock and counting row hits
++# "pool-rowhit-cap" (frfcfs only): consecutive row hits that may bypass an older
++# request before the oldest is served; 0 = no cap.
++pool_sched = jobs["0"]["metadata"].get("pool-sched", "fcfs") or "fcfs"
++pool_rowhit_cap = int(jobs["0"]["metadata"].get("pool-rowhit-cap", "0") or "0")
++print("pool scheduler:", pool_sched, "row-hit cap:", pool_rowhit_cap)
++sched_params = {
++    "fcfs": {},
++    "frfcfs": {"channel.rank.bank.lazyPop": 1,
++               "channel.rank.bank.transactionQ": "btpmem.frfcfsTransactionQ",
++               "channel.rank.bank.transactionQ.maxRowHits": pool_rowhit_cap,
++               "channel.rank.bank.pagePolicy.close": 0},
++    "fcfs-open": {"channel.rank.bank.lazyPop": 1,
++                  "channel.rank.bank.pagePolicy.close": 0},
++    "fcfs-copy": {},
++}[pool_sched]
++backend = "memHierarchy.timingDRAM" if pool_sched == "fcfs" else "btpmem.timingDRAM"
++memory = memctrl.setSubComponent( "backend", backend)
++memory.addParams(sched_params)
+ memory.addParams({
+     "id" : 0,
+     "addrMapper" : "memHierarchy.simpleAddrMapper",
+@@ -215,12 +242,41 @@ memory.addParams({
+     "addrMapper.row_size" : "1KiB",
+     "clock" : "1.2GHz",
+     "mem_size" : util_int_to_size(total_sst_memory),
+-    "channels" : 4,
++    "channels" : pool_channels,
+     "channel.numRanks" : 2,
+     "channel.rank.numBanks" : 16,
+     "channel.rank.bank.TRP" : 14,
+     "printconfig" : 1,
+ })
++# BTP: DRAM row (page) size of the pool, set per run with "pool-row-size" in host 0's
++# metadata, e.g. "8KiB" (DDR4 rank) or "4KiB" (DDR5 x8/x16 subchannel). Empty keeps
++# simpleAddrMapper, whose rows are 16 KiB whatever row_size says (Phase 1).
++pool_row_size = jobs["0"]["metadata"].get("pool-row-size", "") or ""
++print("pool row size:", pool_row_size or "16KiB (simpleAddrMapper)")
++if pool_row_size:
++    memory.addParams({"addrMapper" : "btpmem.rowAddrMapper",
++                      "addrMapper.row_size" : pool_row_size})
++# BTP: per-host front end of the pool (btpmem.timingDRAM "arb"), set per run in host 0's
++# metadata. Empty "pool-arb" keeps the stock front end (all O3 runs).
++#   pool-arb         scheduler: fcfs | frfcfs (oldest first across hosts, no host priority);
++#                    static (fixed host ranks, pool-arb-params {"ranks": "1,1,1,0"}, lower first);
++#                    bliss | atlas | tcm | parbs | saa (see btp-sst/btpmem/btpSched.cc for settings)
++#   pool-arb-level   where host priority acts: both (default) | admit | bank
++#   pool-arb-params  scheduler settings, a dict (or JSON string); each key is passed as arb.<key>
++pool_arb = jobs["0"]["metadata"].get("pool-arb", "") or ""
++if pool_arb:
++    if backend != "btpmem.timingDRAM":
++        raise SystemExit("pool-arb needs a btpmem pool-sched (frfcfs, fcfs-open, fcfs-copy), not '%s'" % pool_sched)
++    pool_arb_level = jobs["0"]["metadata"].get("pool-arb-level", "both") or "both"
++    pool_arb_params = jobs["0"]["metadata"].get("pool-arb-params", {}) or {}
++    if isinstance(pool_arb_params, str):
++        pool_arb_params = json.loads(pool_arb_params)
++    arb = {"arb": 1, "arb.scheduler": pool_arb, "arb.level": pool_arb_level,
++           "arb.num_hosts": system_nodes, "arb.host_shift": 30}
++    for k, v in pool_arb_params.items():
++        arb["arb." + k] = v
++    memory.addParams(arb)
++print("pool front end:", ("per-host, " + pool_arb + ", level " + pool_arb_level) if pool_arb else "stock")
+ 
+ # Add all the Gem5 nodes to this list.
+ gem5_nodes = []
+@@ -264,7 +320,8 @@ for node in range(system_nodes):
+     cmd = [
+         # "-re",
+         "--outdir=" + os.path.join(output_directory,
+-                        jobs[job]["metadata"]["experiment"]) + "_" + str(node),
++                        jobs[job]["metadata"]["experiment"]) + "_" + str(node)] + \
++        jobs[job]["metadata"].get("gem5-opts", "").split() + [  # BTP: optional gem5 options, e.g. --debug-start
+         p_config]
+     
+     # Check if a TICK or MAXINST exists in the config file.
+@@ -310,6 +367,14 @@ for node in range(system_nodes):
+         "--l2-size=" + jobs[job]["cache"]["l2-size"],
+         "--l3-size=" + jobs[job]["cache"]["l3-size"],
+         "--l3-assoc=" + jobs[job]["cache"]["l3-assoc"],
++    ] + [
++        # Optional: misses in flight per cache; gem5 defaults apply if absent
++        f"--{k}={jobs[job]['cache'][k]}"
++        for k in ("l1d-mshrs", "l2-mshrs", "l3-mshrs",
++                  "l2-write-buffers", "l3-write-buffers",
++                  "l3-prefetcher")
++        if k in jobs[job]["cache"]
++    ] + [
+         "--local-memory-type=" + jobs[job]["local-memory"]
+                             ["type"],
+         "--local-memory-size=" + jobs[job]["local-memory"]
+@@ -328,7 +393,11 @@ for node in range(system_nodes):
+         "--bootloader-path=" + jobs[job]["workitem"]["bootloader"],
+         "--systemd=" + args.systemd
+         
+-    ]
++    ] + (
++        # BTP: optional periodic stats dumps, set once in host 0's metadata
++        ["--stats-period-ms=" + jobs["0"]["metadata"]["stats-period-ms"]]
++        if jobs["0"]["metadata"].get("stats-period-ms", "") != "" else []
++    )
+     # The user can add more parameters here
+ 
+     cmd = cmd + rest_of_cmd
+@@ -342,7 +411,8 @@ for node in range(system_nodes):
+     cpu_params = {
+        "frequency" : cpu_clock_rate,
+        "cmd" : " ".join(cmd),
+-       "debug_flags" : "",
++       # BTP: optional gem5 debug flags per host (metadata "debug-flags"), printed to the run log
++       "debug_flags" : jobs[job]["metadata"].get("debug-flags", ""),
+        "ports" : " ".join(port_list),
+        "max_ticks" : args.max_ticks
+     }
